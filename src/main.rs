@@ -15,8 +15,7 @@ struct State {
     search_filter: EnvironmentFrom,
     display_rows: usize,
     display_columns: usize,
-    displayed_search_results: (usize, Vec<String>), // usize is selected index
-
+    // displayed_search_results: (usize, Vec<String>), // usize is selected index
     last_pane: PaneManifest,
     last_tab: TabInfo, // TODO: useless?
 }
@@ -100,7 +99,7 @@ impl State {
 
     fn start_action(&mut self) {
         let (cmd, args) = match self.search_filter {
-            EnvironmentFrom::ZellijSession => ("env", Vec::<&str>::new()),
+            EnvironmentFrom::ZellijSession => ("env", vec![]),
             EnvironmentFrom::DefaultShell => ("fish", vec!["-c", "env"]),
             EnvironmentFrom::LastPane => todo!(),
         };

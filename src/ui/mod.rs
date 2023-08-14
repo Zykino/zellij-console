@@ -30,9 +30,10 @@ impl Display for State {
 impl State {
     pub fn render_search_line(&self) -> String {
         format!(
-            "{}{}\n",
+            "{}{}{} \n",
             styled_text_foreground(CYAN, &bold("ACTION: ")),
-            self.action
+            self.action,
+            styled_text_background(WHITE, " ")
         )
     }
 
