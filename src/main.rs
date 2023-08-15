@@ -68,7 +68,7 @@ impl State {
             Key::Ctrl('f') => {
                 self.should_open_floating = !self.should_open_floating;
             }
-            Key::Ctrl('e') => self.search_filter.progress(),
+            Key::Ctrl('e') => self.search_filter.progress(), // TODO: should also be a toggelable bool
             // Key::Esc | Key::Ctrl('c') => {
             //     if !self.search_term.is_empty() {
             //         self.clear_state();
