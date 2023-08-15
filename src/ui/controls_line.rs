@@ -144,12 +144,11 @@ impl Control {
     pub fn new_filter_control(key: &'static str, search_filter: &EnvironmentFrom) -> Self {
         match search_filter {
             EnvironmentFrom::ZellijSession => {
-                Control::new(key, vec!["ZELLIJ’S SESSION", "SESSION", "S"], (1, 3))
+                Control::new(key, vec!["ZELLIJ’S ENVIRONMENT", "ZELLIJ", "z"], (1, 2))
             }
             EnvironmentFrom::DefaultShell => {
-                Control::new(key, vec!["DEFAULT SHELL", "DEFAULT", "D"], (2, 3))
+                Control::new(key, vec!["SHELL’S ENVIRONMENT", "SHELL", "S"], (2, 2))
             }
-            EnvironmentFrom::LastPane => Control::new(key, vec!["LAST PANE", "PANE", "P"], (3, 3)),
         }
     }
     pub fn short_len(&self) -> usize {

@@ -119,7 +119,7 @@ impl State {
         let has_results = true; // !self.displayed_search_results.1.is_empty();
         let tiled_floating_control =
             Control::new_floating_control("Ctrl f", self.should_open_floating);
-        let names_contents_control = Control::new_filter_control("Ctrl r", &self.search_filter);
+        let names_contents_control = Control::new_filter_control("Ctrl e", &self.search_filter);
         if self.loading {
             ControlsLine::new(
                 vec![tiled_floating_control, names_contents_control],

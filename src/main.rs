@@ -68,7 +68,7 @@ impl State {
             Key::Ctrl('f') => {
                 self.should_open_floating = !self.should_open_floating;
             }
-            Key::Ctrl('r') => self.search_filter.progress(),
+            Key::Ctrl('e') => self.search_filter.progress(),
             // Key::Esc | Key::Ctrl('c') => {
             //     if !self.search_term.is_empty() {
             //         self.clear_state();
@@ -108,7 +108,6 @@ impl State {
                     // TODO: get this as parameter
                     EnvironmentFrom::ZellijSession => ("env", vec![]),
                     EnvironmentFrom::DefaultShell => ("fish", vec!["-c", "env"]),
-                    EnvironmentFrom::LastPane => todo!(),
                 };
 
                 if self.should_open_floating {
@@ -184,15 +183,13 @@ impl State {
 pub enum EnvironmentFrom {
     ZellijSession,
     DefaultShell,
-    LastPane,
 }
 
 impl EnvironmentFrom {
     pub fn progress(&mut self) {
         match &self {
             &EnvironmentFrom::ZellijSession => *self = EnvironmentFrom::DefaultShell,
-            &EnvironmentFrom::DefaultShell => *self = EnvironmentFrom::LastPane,
-            &EnvironmentFrom::LastPane => *self = EnvironmentFrom::ZellijSession,
+            &EnvironmentFrom::DefaultShell => *self = EnvironmentFrom::ZellijSession,
         }
     }
 }
