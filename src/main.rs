@@ -1,4 +1,7 @@
+mod action;
 mod ui;
+
+use action::Action;
 
 use zellij_tile::prelude::*;
 
@@ -6,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Default)]
 struct State {
-    action: String,
+    action: Action,
     // file_name_search_results: Vec<String>,
     // file_contents_search_results: Vec<String>,
     loading: bool,
@@ -98,23 +101,83 @@ impl State {
     }
 
     fn start_action(&mut self) {
-        let (cmd, args) = match self.search_filter {
-            EnvironmentFrom::ZellijSession => ("env", vec![]),
-            EnvironmentFrom::DefaultShell => ("fish", vec!["-c", "env"]),
-            EnvironmentFrom::LastPane => todo!(),
-        };
-
+        // Parse la ligne en séparant aux "espaces"
         match self.action.as_str() {
             "run" => {
+                let (cmd, args) = match self.search_filter {
+                    // TODO: get this as parameter
+                    EnvironmentFrom::ZellijSession => ("env", vec![]),
+                    EnvironmentFrom::DefaultShell => ("fish", vec!["-c", "env"]),
+                    EnvironmentFrom::LastPane => todo!(),
+                };
+
                 if self.should_open_floating {
                     open_command_pane_floating(cmd, args);
                 } else {
                     open_command_pane(cmd, args);
                 }
             }
+            "edit" => {
+                let file = "Cargo.toml"; // TODO: get this as parameter
+                if self.should_open_floating {
+                    open_file_floating(file);
+                } else {
+                    open_file(file);
+                }
+            }
+            "new-pane" => {
+                let path = "."; // TODO: get this as parameter
+                if self.should_open_floating {
+                    open_terminal_floating(path);
+                } else {
+                    open_terminal(path);
+                }
+            }
             _ => (),
         }
     }
+
+    // fn open_search_result_in_editor(&mut self) {
+    //     match self.selected_search_result_entry() {
+    //         Some(SearchResult::File { path, .. }) => {
+    //             if self.should_open_floating {
+    //                 open_file_floating(&PathBuf::from(path))
+    //             } else {
+    //                 open_file(&PathBuf::from(path));
+    //             }
+    //         }
+    //         Some(SearchResult::LineInFile {
+    //             path, line_number, ..
+    //         }) => {
+    //             if self.should_open_floating {
+    //                 open_file_with_line_floating(&PathBuf::from(path), line_number);
+    //             } else {
+    //                 open_file_with_line(&PathBuf::from(path), line_number);
+    //             }
+    //         }
+    //         None => eprintln!("Search results not found"),
+    //     }
+    // }
+
+    // fn open_search_result_in_terminal(&mut self) {
+    //     let dir_path_of_result = |path: &str| -> PathBuf {
+    //         let file_path = PathBuf::from(path);
+    //         let mut dir_path = file_path.components();
+    //         dir_path.next_back(); // remove file name to stay with just the folder
+    //         dir_path.as_path().into()
+    //     };
+    //     let selected_search_result_entry = self.selected_search_result_entry();
+    //     if let Some(SearchResult::File { path, .. }) | Some(SearchResult::LineInFile { path, .. }) =
+    //         selected_search_result_entry
+    //     {
+    //         let dir_path = dir_path_of_result(&path);
+    //         if self.should_open_floating {
+    //             open_terminal_floating(&dir_path);
+    //         } else {
+    //             open_terminal(&dir_path);
+    //         }
+    //     }
+    // }
 }
 
 #[derive(Serialize, Deserialize)]

@@ -4,6 +4,7 @@ mod selection_controls_area;
 
 use std::fmt::{Display, Formatter};
 
+use crate::action::ActionList;
 use crate::ui::controls_line::{Control, ControlsLine};
 use crate::ui::selection_controls_area::SelectionControlsArea;
 use crate::State;
@@ -17,9 +18,46 @@ pub const RED: u8 = 124;
 pub const GREEN: u8 = 154;
 pub const ORANGE: u8 = 166;
 
+impl Display for ActionList {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        const REQUIRED_COLOR: u8 = GRAY_DARK;
+        const OPTIONAL_COLOR: u8 = GRAY_LIGHT;
+
+        let text = match self {
+            ActionList::None => format!(
+                "{} None",
+                styled_text_foreground(OPTIONAL_COLOR, &bold("ACTION:")),
+            ),
+            ActionList::NewPane { path } => format!(
+                "{} New pane\n{} {}",
+                styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
+                styled_text_foreground(REQUIRED_COLOR, &bold("PATH:")),
+                path
+            ),
+            ActionList::Run { cmd, args } => format!(
+                "{} Run\n{} {}\n{} {:?}",
+                styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
+                styled_text_foreground(REQUIRED_COLOR, &bold("COMMAND:")),
+                cmd,
+                styled_text_foreground(OPTIONAL_COLOR, &bold("ARGUMENTS:")),
+                args
+            ),
+            ActionList::Edit { path, line } => format!(
+                "{} Edit\n{} {}\n{} {}",
+                styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
+                styled_text_foreground(OPTIONAL_COLOR, &bold("PATH:")),
+                path,
+                styled_text_foreground(OPTIONAL_COLOR, &bold("LINE:")),
+                line.unwrap_or_default(),
+            ),
+        };
+        write!(f, "{}", text)
+    }
+}
+
 impl Display for State {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.render_search_line())?;
+        write!(f, "{}", self.render_action_line())?;
         // write!(f, "{}", self.render_search_results())?;
         // write!(f, "{}", self.render_selection_control_area())?;
         write!(f, "{}", self.render_controls_line())?;
@@ -28,12 +66,13 @@ impl Display for State {
 }
 
 impl State {
-    pub fn render_search_line(&self) -> String {
+    pub fn render_action_line(&self) -> String {
         format!(
-            "{}{}{} \n",
-            styled_text_foreground(CYAN, &bold("ACTION: ")),
-            self.action,
-            styled_text_background(WHITE, " ")
+            "{} {}{}\n{}\n",
+            styled_text_foreground(CYAN, &bold("PROMPT:")),
+            self.action.as_str(),
+            styled_text_background(WHITE, " "),
+            self.action.action(),
         )
     }
 
