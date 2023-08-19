@@ -1,9 +1,21 @@
+use std::collections::BTreeMap;
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum ActionList {
     None,
-    NewPane { path: String },
-    Run { cmd: String, args: Vec<String> },
-    Edit { path: String, line: Option<usize> },
+    NewPane {
+        path: String,
+    },
+    Run {
+        cmd: String,
+        args: Vec<String>,
+        cwd: Option<String>, // TODO: `Option<PathBuf>`?
+        env: BTreeMap<String, Option<String>>,
+    },
+    Edit {
+        path: String,
+        line: Option<usize>,
+    },
 }
 
 impl ActionList {
@@ -11,24 +23,55 @@ impl ActionList {
         let mut split = command.split_whitespace();
         let action = split.next().unwrap_or_default().to_lowercase();
         let action = action.as_str();
-        let mut args = split.map(|v| v.to_owned());
+        let mut action_arguments = split.map(|v| v.to_owned());
 
         match action {
             "new-pane" => Self::NewPane {
-                path: args.collect::<Vec<String>>().join(" "),
+                path: action_arguments.collect::<Vec<String>>().join(" "),
             },
-            "run" => Self::Run {
-                cmd: args.next().unwrap_or_default(),
-                args: args.collect(),
-            },
+            "run" => {
+                let mut cmd = String::new();
+                let mut args: Vec<String> = Default::default();
+                let mut cwd = Default::default();
+                let mut env: BTreeMap<String, Option<String>> = Default::default();
+
+                let mut are_args = true;
+
+                let mut val = action_arguments.next();
+                while val.is_some() {
+                    // Safety: checked in the while loop
+                    let v = unsafe { val.unwrap_unchecked() };
+
+                    match v.as_str() {
+                        "---cwd" => cwd = action_arguments.next(),
+                        "---env" => are_args = false,
+                        _ => {
+                            if cmd.is_empty() {
+                                cmd = v;
+                            } else if are_args {
+                                args.push(v);
+                            } else {
+                                env.insert(v, action_arguments.next());
+                            }
+                        }
+                    };
+                    val = action_arguments.next();
+                }
+                Self::Run {
+                    cmd,
+                    args,
+                    cwd,
+                    env,
+                }
+            }
             "edit" => {
-                let last = args.next_back();
+                let last = action_arguments.next_back();
                 let line = last
                     .clone()
                     .unwrap_or(String::new())
                     .parse::<usize>()
                     .map_or(None, |v| Some(v));
-                let mut path = args.collect::<Vec<String>>().join(" ");
+                let mut path = action_arguments.collect::<Vec<String>>().join(" ");
                 if line == None {
                     if !path.is_empty() {
                         path.push(' ');

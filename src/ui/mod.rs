@@ -34,13 +34,22 @@ impl Display for ActionList {
                 styled_text_foreground(REQUIRED_COLOR, &bold("PATH:")),
                 path
             ),
-            ActionList::Run { cmd, args } => format!(
-                "{} Run\n{} {}\n{} {:?}",
+            ActionList::Run {
+                cmd,
+                args,
+                cwd,
+                env,
+            } => format!(
+                "{} Run\n{} {}\n{} {:?}\n{} {}\n{} {:#?}",
                 styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
                 styled_text_foreground(REQUIRED_COLOR, &bold("COMMAND:")),
                 cmd,
                 styled_text_foreground(OPTIONAL_COLOR, &bold("ARGUMENTS:")),
-                args
+                args,
+                styled_text_foreground(OPTIONAL_COLOR, &bold("DIRECTORY:")),
+                cwd.clone().unwrap_or_default(),
+                styled_text_foreground(OPTIONAL_COLOR, &bold("ENVIRONMENT:")),
+                env
             ),
             ActionList::Edit { path, line } => format!(
                 "{} Edit\n{} {}\n{} {}",
