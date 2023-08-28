@@ -6,6 +6,7 @@ use action::Action;
 use zellij_tile::prelude::*;
 
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 #[derive(Default)]
 struct State {
@@ -26,7 +27,12 @@ struct State {
 register_plugin!(State);
 
 impl ZellijPlugin for State {
-    fn load(&mut self) {
+    fn load(&mut self, _configuration: BTreeMap<String, String>) {
+        request_permission(&[
+            //     PermissionType::ReadApplicationState,
+            PermissionType::RunCommands,
+            PermissionType::OpenFiles,
+        ]);
         subscribe(&[EventType::PaneUpdate, EventType::TabUpdate, EventType::Key]);
     }
 
@@ -46,7 +52,10 @@ impl ZellijPlugin for State {
                 self.handle_key(key);
                 should_render = true;
             }
-            _ => unimplemented!(),
+            Event::PermissionRequestResult(_status) => {
+                // should_render = true;
+            }
+            _ => unimplemented!("{:?}", event),
         };
 
         should_render
@@ -104,20 +113,33 @@ impl State {
         // Parse la ligne en séparant aux "espaces"
         match self.action.as_str() {
             "run" => {
-                let (cmd, args) = match self.search_filter {
+                let (path, args) = match self.search_filter {
                     // TODO: get this as parameter
-                    EnvironmentFrom::ZellijSession => ("env", vec![]),
-                    EnvironmentFrom::DefaultShell => ("fish", vec!["-c", "env"]),
+                    EnvironmentFrom::ZellijSession => ("env".into(), vec![]),
+                    EnvironmentFrom::DefaultShell => {
+                        ("fish".into(), vec!["-c".to_string(), "env".to_string()])
+                    }
+                };
+                let cmd = CommandToRun {
+                    path,
+                    args,
+                    cwd: None,
                 };
 
                 if self.should_open_floating {
-                    open_command_pane_floating(cmd, args);
+                    open_command_pane_floating(cmd);
                 } else {
-                    open_command_pane(cmd, args);
+                    open_command_pane(cmd);
                 }
             }
             "edit" => {
-                let file = "Cargo.toml"; // TODO: get this as parameter
+                let path = "Cargo.toml".into(); // TODO: get this as parameter
+                let file = FileToOpen {
+                    path,
+                    line_number: None,
+                    cwd: None,
+                };
+
                 if self.should_open_floating {
                     open_file_floating(file);
                 } else {
