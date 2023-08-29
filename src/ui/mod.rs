@@ -4,6 +4,8 @@ mod selection_controls_area;
 
 use std::fmt::{Display, Formatter};
 
+use zellij_tile::prelude::{CommandToRun, FileToOpen};
+
 use crate::action::ActionList;
 use crate::ui::controls_line::{Control, ControlsLine};
 use crate::ui::selection_controls_area::SelectionControlsArea;
@@ -22,6 +24,7 @@ impl Display for ActionList {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         const REQUIRED_COLOR: u8 = GRAY_DARK;
         const OPTIONAL_COLOR: u8 = GRAY_LIGHT;
+        const UNSETTABLE_COLOR: u8 = ORANGE;
 
         let text = match self {
             ActionList::None => format!(
@@ -34,30 +37,29 @@ impl Display for ActionList {
                 styled_text_foreground(REQUIRED_COLOR, &bold("PATH:")),
                 path
             ),
-            ActionList::Run {
-                cmd,
-                args,
-                cwd,
-                env,
-            } => format!(
-                "{} Run\n{} {}\n{} {:?}\n{} {}\n{} {:#?}",
+            ActionList::Run(CommandToRun { path, args, cwd }) => format!(
+                "{} Run\n{} {:?}\n{} {:?}\n{} {:?}",
                 styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
                 styled_text_foreground(REQUIRED_COLOR, &bold("COMMAND:")),
-                cmd,
+                path,
                 styled_text_foreground(OPTIONAL_COLOR, &bold("ARGUMENTS:")),
                 args,
                 styled_text_foreground(OPTIONAL_COLOR, &bold("DIRECTORY:")),
                 cwd.clone().unwrap_or_default(),
-                styled_text_foreground(OPTIONAL_COLOR, &bold("ENVIRONMENT:")),
-                env
             ),
-            ActionList::Edit { path, line } => format!(
-                "{} Edit\n{} {}\n{} {}",
+            ActionList::Edit(FileToOpen {
+                path,
+                line_number: line,
+                cwd,
+            }) => format!(
+                "{} Edit\n{} {:?}\n{} {}\n{} {:?}",
                 styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
                 styled_text_foreground(OPTIONAL_COLOR, &bold("PATH:")),
                 path,
                 styled_text_foreground(OPTIONAL_COLOR, &bold("LINE:")),
                 line.unwrap_or_default(),
+                styled_text_foreground(UNSETTABLE_COLOR, &bold("DIRECTORY:")),
+                cwd.clone().unwrap_or_default(),
             ),
         };
         write!(f, "{}", text)

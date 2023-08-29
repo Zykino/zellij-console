@@ -1,7 +1,7 @@
 mod action;
 mod ui;
 
-use action::Action;
+use action::{Action, ActionList};
 
 use zellij_tile::prelude::*;
 
@@ -111,20 +111,22 @@ impl State {
 
     fn start_action(&mut self) {
         // Parse la ligne en séparant aux "espaces"
-        match self.action.as_str() {
-            "run" => {
+        match self.action.action().clone() {
+            ActionList::Run(CommandToRun { path, args, cwd }) => {
                 let (path, args) = match self.search_filter {
                     // TODO: get this as parameter
-                    EnvironmentFrom::ZellijSession => ("env".into(), vec![]),
+                    EnvironmentFrom::ZellijSession => (path, args),
                     EnvironmentFrom::DefaultShell => {
-                        ("fish".into(), vec!["-c".to_string(), "env".to_string()])
+                        let mut a = vec![
+                            "-c".to_string(),
+                            path.to_str().unwrap_or_default().to_string(),
+                        ];
+                        a.append(&mut args.clone());
+
+                        ("fish".into(), a) // TODO: get user’s shell
                     }
                 };
-                let cmd = CommandToRun {
-                    path,
-                    args,
-                    cwd: None,
-                };
+                let cmd = CommandToRun { path, args, cwd };
 
                 if self.should_open_floating {
                     open_command_pane_floating(cmd);
@@ -132,12 +134,15 @@ impl State {
                     open_command_pane(cmd);
                 }
             }
-            "edit" => {
-                let path = "Cargo.toml".into(); // TODO: get this as parameter
+            ActionList::Edit(FileToOpen {
+                path,
+                line_number,
+                cwd,
+            }) => {
                 let file = FileToOpen {
-                    path,
-                    line_number: None,
-                    cwd: None,
+                    path: path.to_owned(),
+                    line_number: line_number.to_owned(),
+                    cwd: cwd.to_owned(),
                 };
 
                 if self.should_open_floating {
@@ -146,15 +151,14 @@ impl State {
                     open_file(file);
                 }
             }
-            "new-pane" => {
-                let path = "."; // TODO: get this as parameter
+            ActionList::NewPane { path } => {
                 if self.should_open_floating {
                     open_terminal_floating(path);
                 } else {
                     open_terminal(path);
                 }
             }
-            _ => (),
+            ActionList::None => (),
         }
     }
 

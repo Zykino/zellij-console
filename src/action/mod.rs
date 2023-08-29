@@ -1,21 +1,13 @@
-use std::collections::BTreeMap;
+use std::path::PathBuf;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+use zellij_tile::prelude::{CommandToRun, FileToOpen};
+
+#[derive(Debug, Clone)]
 pub(crate) enum ActionList {
     None,
-    NewPane {
-        path: String,
-    },
-    Run {
-        cmd: String,
-        args: Vec<String>,
-        cwd: Option<String>, // TODO: `Option<PathBuf>`?
-        env: BTreeMap<String, Option<String>>,
-    },
-    Edit {
-        path: String,
-        line: Option<usize>,
-    },
+    NewPane { path: String },
+    Run(CommandToRun),
+    Edit(FileToOpen),
 }
 
 impl ActionList {
@@ -33,9 +25,6 @@ impl ActionList {
                 let mut cmd = String::new();
                 let mut args: Vec<String> = Default::default();
                 let mut cwd = Default::default();
-                let mut env: BTreeMap<String, Option<String>> = Default::default();
-
-                let mut are_args = true;
 
                 let mut val = action_arguments.next();
                 while val.is_some() {
@@ -43,49 +32,50 @@ impl ActionList {
                     let v = unsafe { val.unwrap_unchecked() };
 
                     match v.as_str() {
-                        "---cwd" => cwd = action_arguments.next(),
-                        "---env" => are_args = false,
+                        "---cwd" => cwd = action_arguments.next().map(PathBuf::from),
                         _ => {
                             if cmd.is_empty() {
                                 cmd = v;
-                            } else if are_args {
-                                args.push(v);
                             } else {
-                                env.insert(v, action_arguments.next());
+                                args.push(v);
                             }
                         }
                     };
                     val = action_arguments.next();
                 }
-                Self::Run {
-                    cmd,
+                Self::Run(CommandToRun {
+                    path: cmd.into(),
                     args,
                     cwd,
-                    env,
-                }
+                })
             }
             "edit" => {
                 let last = action_arguments.next_back();
-                let line = last
+                let line_number = last
                     .clone()
                     .unwrap_or(String::new())
                     .parse::<usize>()
                     .map_or(None, |v| Some(v));
                 let mut path = action_arguments.collect::<Vec<String>>().join(" ");
-                if line == None {
+                if line_number == None {
                     if !path.is_empty() {
                         path.push(' ');
                     }
                     path.push_str(&last.unwrap_or_default())
                 }
-                Self::Edit { path, line }
+
+                Self::Edit(FileToOpen {
+                    path: path.into(),
+                    line_number,
+                    cwd: None, // TODO: get the cwd
+                })
             }
             _ => Self::None,
         }
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone)]
 pub(crate) struct Action {
     command: String,
     action: ActionList,
