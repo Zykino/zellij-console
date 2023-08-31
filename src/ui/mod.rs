@@ -27,9 +27,25 @@ impl Display for ActionList {
         const UNSETTABLE_COLOR: u8 = ORANGE;
 
         let text = match self {
-            ActionList::None => format!(
-                "{} None",
-                styled_text_foreground(OPTIONAL_COLOR, &bold("ACTION:")),
+            ActionList::Detach => {
+                format!(
+                    "{} Detach",
+                    styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
+                )
+            }
+            ActionList::Edit(FileToOpen {
+                path,
+                line_number: line,
+                cwd,
+            }) => format!(
+                "{} Edit\n{} {:?}\n{} {}\n{} {:?}",
+                styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
+                styled_text_foreground(OPTIONAL_COLOR, &bold("PATH:")),
+                path,
+                styled_text_foreground(OPTIONAL_COLOR, &bold("LINE:")),
+                line.unwrap_or_default(),
+                styled_text_foreground(UNSETTABLE_COLOR, &bold("DIRECTORY:")),
+                cwd.clone().unwrap_or_default(),
             ),
             ActionList::NewPane { path } => format!(
                 "{} New pane\n{} {}",
@@ -47,19 +63,9 @@ impl Display for ActionList {
                 styled_text_foreground(OPTIONAL_COLOR, &bold("DIRECTORY:")),
                 cwd.clone().unwrap_or_default(),
             ),
-            ActionList::Edit(FileToOpen {
-                path,
-                line_number: line,
-                cwd,
-            }) => format!(
-                "{} Edit\n{} {:?}\n{} {}\n{} {:?}",
-                styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
-                styled_text_foreground(OPTIONAL_COLOR, &bold("PATH:")),
-                path,
-                styled_text_foreground(OPTIONAL_COLOR, &bold("LINE:")),
-                line.unwrap_or_default(),
-                styled_text_foreground(UNSETTABLE_COLOR, &bold("DIRECTORY:")),
-                cwd.clone().unwrap_or_default(),
+            ActionList::None => format!(
+                "{} None",
+                styled_text_foreground(OPTIONAL_COLOR, &bold("ACTION:")),
             ),
         };
         write!(f, "{}", text)

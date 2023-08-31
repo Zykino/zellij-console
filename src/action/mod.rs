@@ -4,10 +4,12 @@ use zellij_tile::prelude::{CommandToRun, FileToOpen};
 
 #[derive(Debug, Clone)]
 pub(crate) enum ActionList {
-    None,
+    Detach,
+    Edit(FileToOpen),
     NewPane { path: String },
     Run(CommandToRun),
-    Edit(FileToOpen),
+
+    None,
 }
 
 impl ActionList {
@@ -18,6 +20,28 @@ impl ActionList {
         let mut action_arguments = split.map(|v| v.to_owned());
 
         match action {
+            "detach" => Self::Detach,
+            "edit" => {
+                let last = action_arguments.next_back();
+                let line_number = last
+                    .clone()
+                    .unwrap_or(String::new())
+                    .parse::<usize>()
+                    .map_or(None, |v| Some(v));
+                let mut path = action_arguments.collect::<Vec<String>>().join(" ");
+                if line_number == None {
+                    if !path.is_empty() {
+                        path.push(' ');
+                    }
+                    path.push_str(&last.unwrap_or_default())
+                }
+
+                Self::Edit(FileToOpen {
+                    path: path.into(),
+                    line_number,
+                    cwd: None, // TODO: get the cwd
+                })
+            }
             "new-pane" => Self::NewPane {
                 path: action_arguments.collect::<Vec<String>>().join(" "),
             },
@@ -47,27 +71,6 @@ impl ActionList {
                     path: cmd.into(),
                     args,
                     cwd,
-                })
-            }
-            "edit" => {
-                let last = action_arguments.next_back();
-                let line_number = last
-                    .clone()
-                    .unwrap_or(String::new())
-                    .parse::<usize>()
-                    .map_or(None, |v| Some(v));
-                let mut path = action_arguments.collect::<Vec<String>>().join(" ");
-                if line_number == None {
-                    if !path.is_empty() {
-                        path.push(' ');
-                    }
-                    path.push_str(&last.unwrap_or_default())
-                }
-
-                Self::Edit(FileToOpen {
-                    path: path.into(),
-                    line_number,
-                    cwd: None, // TODO: get the cwd
                 })
             }
             _ => Self::None,
