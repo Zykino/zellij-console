@@ -28,18 +28,14 @@ impl Display for ActionList {
 
         let text = match self {
             ActionList::Detach => {
-                format!(
-                    "{} Detach",
-                    styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
-                )
+                format!("Detach")
             }
             ActionList::Edit(FileToOpen {
                 path,
                 line_number: line,
                 cwd,
             }) => format!(
-                "{} Edit\n{} {:?}\n{} {}\n{} {:?}",
-                styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
+                "Edit\n{} {:?}\n{} {}\n{} {:?}",
                 styled_text_foreground(OPTIONAL_COLOR, &bold("PATH:")),
                 path,
                 styled_text_foreground(OPTIONAL_COLOR, &bold("LINE:")),
@@ -48,14 +44,12 @@ impl Display for ActionList {
                 cwd.clone().unwrap_or_default(),
             ),
             ActionList::NewPane { path } => format!(
-                "{} New pane\n{} {}",
-                styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
+                "New pane\n{} {}",
                 styled_text_foreground(REQUIRED_COLOR, &bold("PATH:")),
                 path
             ),
             ActionList::Run(CommandToRun { path, args, cwd }) => format!(
-                "{} Run\n{} {:?}\n{} {:?}\n{} {:?}",
-                styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
+                "Run\n{} {:?}\n{} {:?}\n{} {:?}",
                 styled_text_foreground(REQUIRED_COLOR, &bold("COMMAND:")),
                 path,
                 styled_text_foreground(OPTIONAL_COLOR, &bold("ARGUMENTS:")),
@@ -63,11 +57,15 @@ impl Display for ActionList {
                 styled_text_foreground(OPTIONAL_COLOR, &bold("DIRECTORY:")),
                 cwd.clone().unwrap_or_default(),
             ),
-            ActionList::None => format!(
-                "{} None",
-                styled_text_foreground(OPTIONAL_COLOR, &bold("ACTION:")),
-            ),
+            ActionList::None => format!("None",),
         };
+
+        let text = format!(
+            "{} {}",
+            styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
+            text
+        );
+
         write!(f, "{}", text)
     }
 }
