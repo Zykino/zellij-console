@@ -1,26 +1,59 @@
 use std::path::PathBuf;
+use strum::{EnumMessage, IntoEnumIterator};
+use strum_macros::{EnumIter, EnumMessage};
 
 use zellij_tile::prelude::{CommandToRun, FileToOpen};
 
-#[derive(Debug, Clone)]
-pub(crate) enum ActionList {
-    Detach,
-    Edit(FileToOpen),
-    NewPane { path: String },
-    Run(CommandToRun),
-
+#[derive(Debug, Clone, EnumMessage)]
+pub(crate) enum TechnicalAction {
+    /// No commanad is recognized
     None,
+    /// Show the list of commands
+    Help,
+}
+
+#[derive(Debug, Clone, EnumMessage, EnumIter)]
+pub(crate) enum ZellijAction {
+    /// Detach from the current session
+    Detach,
+    /// Edit a file in a new edit pane
+    Edit(FileToOpen),
+    /// Open a new pane in the current tab
+    #[strum(
+        serialize = "NewPane",
+        serialize = "New-Pane",
+        serialize = "New_Pane",
+        serialize = "np"
+    )]
+    NewPane { path: String },
+    /// Run a command in a new edit pane
+    Run(CommandToRun),
+}
+
+#[derive(Debug, Clone, EnumMessage)]
+pub(crate) enum ActionList {
+    Technical(TechnicalAction),
+    Zellij(ZellijAction),
 }
 
 impl ActionList {
     fn parse(command: String) -> Self {
         let mut split = command.split_whitespace();
         let action = split.next().unwrap_or_default().to_lowercase();
-        let action = action.as_str();
+        // let action = action.as_str();
         let mut action_arguments = split.map(|v| v.to_owned());
 
-        match action {
-            "detach" => Self::Detach,
+        match action.as_str() {
+            // ZellijAction
+            _ if ZellijAction::Detach
+                .get_serializations()
+                .iter()
+                .map(|a| a.to_lowercase())
+                .collect::<Vec<_>>()
+                .contains(&action) =>
+            {
+                Self::Zellij(ZellijAction::Detach)
+            }
             "edit" => {
                 let last = action_arguments.next_back();
                 let line_number = last
@@ -36,15 +69,15 @@ impl ActionList {
                     path.push_str(&last.unwrap_or_default())
                 }
 
-                Self::Edit(FileToOpen {
+                Self::Zellij(ZellijAction::Edit(FileToOpen {
                     path: path.into(),
                     line_number,
                     cwd: None, // TODO: get the cwd
-                })
+                }))
             }
-            "new-pane" => Self::NewPane {
+            "new-pane" => Self::Zellij(ZellijAction::NewPane {
                 path: action_arguments.collect::<Vec<String>>().join(" "),
-            },
+            }),
             "run" => {
                 let mut cmd = String::new();
                 let mut args: Vec<String> = Default::default();
@@ -67,17 +100,21 @@ impl ActionList {
                     };
                     val = action_arguments.next();
                 }
-                Self::Run(CommandToRun {
+                Self::Zellij(ZellijAction::Run(CommandToRun {
                     path: cmd.into(),
                     args,
                     cwd,
-                })
+                }))
             }
-            _ => Self::None,
+
+            // Technicals
+            "help" => Self::Technical(TechnicalAction::Help),
+            _ => Self::Technical(TechnicalAction::None),
         }
     }
 }
 
+// TODO: use self referential struct? So we do not store the data twice since `action` is computed from `command`
 #[derive(Debug, Clone)]
 pub(crate) struct Action {
     command: String,
@@ -118,8 +155,8 @@ impl Action {
 impl Default for Action {
     fn default() -> Self {
         Action {
-            command: String::from(""),
-            action: ActionList::None,
+            command: String::new(),
+            action: ActionList::Technical(TechnicalAction::None),
         }
     }
 }

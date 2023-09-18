@@ -3,10 +3,11 @@ mod loading_animation;
 mod selection_controls_area;
 
 use std::fmt::{Display, Formatter};
+use strum::{EnumMessage, IntoEnumIterator};
 
 use zellij_tile::prelude::{CommandToRun, FileToOpen};
 
-use crate::action::ActionList;
+use crate::action::{ActionList, TechnicalAction, ZellijAction};
 use crate::ui::controls_line::{Control, ControlsLine};
 use crate::ui::selection_controls_area::SelectionControlsArea;
 use crate::State;
@@ -20,17 +21,50 @@ pub const RED: u8 = 124;
 pub const GREEN: u8 = 154;
 pub const ORANGE: u8 = 166;
 
-impl Display for ActionList {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        const REQUIRED_COLOR: u8 = GRAY_DARK;
-        const OPTIONAL_COLOR: u8 = GRAY_LIGHT;
-        const UNSETTABLE_COLOR: u8 = ORANGE;
+const REQUIRED_COLOR: u8 = GRAY_DARK;
+const OPTIONAL_COLOR: u8 = GRAY_LIGHT;
+const UNSETTABLE_COLOR: u8 = ORANGE;
 
+impl Display for TechnicalAction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let text = match self {
-            ActionList::Detach => {
-                format!("Detach")
+            Self::None => {
+                String::from(r#"Type a command or "help" if you need a list of commands"#)
             }
-            ActionList::Edit(FileToOpen {
+            Self::Help => {
+                let mut msg = String::new();
+                // let mut msg = format!(
+                //     "Help\n{} ",
+                //     styled_text_foreground(REQUIRED_COLOR, &bold("TODO:")),
+                //     // toto.get_documentation()
+                //     //
+                // );
+                ZellijAction::iter().for_each(|variant| {
+                    msg.push_str(&format!(
+                        "{}:\t{}\n\t{} {}\n",
+                        variant.get_serializations().first().unwrap(), // Safe since at least one serialization is garanteed
+                        variant
+                            .get_documentation()
+                            .expect(&format!("{variant:?} should have a line of documentation")),
+                        // TODO: Maybe only show the other ways of writing the command when selected when the line is selected
+                        // TODO: When selected, "Enter" should use that commands to replace the current command
+                        styled_text_foreground(OPTIONAL_COLOR, &bold("Shortcuts:")),
+                        variant.get_serializations().join(", ")
+                    ));
+                });
+                msg
+            }
+        };
+
+        write!(f, "{}", text)
+    }
+}
+
+impl Display for ZellijAction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let text = match self {
+            Self::Detach => String::from("Detach"),
+            Self::Edit(FileToOpen {
                 path,
                 line_number: line,
                 cwd,
@@ -43,12 +77,12 @@ impl Display for ActionList {
                 styled_text_foreground(UNSETTABLE_COLOR, &bold("DIRECTORY:")),
                 cwd.clone().unwrap_or_default(),
             ),
-            ActionList::NewPane { path } => format!(
+            Self::NewPane { path } => format!(
                 "New pane\n{} {}",
                 styled_text_foreground(REQUIRED_COLOR, &bold("PATH:")),
                 path
             ),
-            ActionList::Run(CommandToRun { path, args, cwd }) => format!(
+            Self::Run(CommandToRun { path, args, cwd }) => format!(
                 "Run\n{} {:?}\n{} {:?}\n{} {:?}",
                 styled_text_foreground(REQUIRED_COLOR, &bold("COMMAND:")),
                 path,
@@ -57,14 +91,26 @@ impl Display for ActionList {
                 styled_text_foreground(OPTIONAL_COLOR, &bold("DIRECTORY:")),
                 cwd.clone().unwrap_or_default(),
             ),
-            ActionList::None => format!("None",),
         };
 
+        // TODO: Should this be in the ActionList impl? The user may not need to know about this distinction of commands
+        //       At the same time, maybe we need to add an equivalent in the TechnicalAction impl?
         let text = format!(
             "{} {}",
             styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
             text
         );
+
+        write!(f, "{}", text)
+    }
+}
+
+impl Display for ActionList {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let text = match self {
+            Self::Technical(t) => t.to_string(),
+            Self::Zellij(z) => z.to_string(),
+        };
 
         write!(f, "{}", text)
     }
