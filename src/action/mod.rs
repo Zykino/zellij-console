@@ -9,11 +9,15 @@ pub(crate) enum TechnicalAction {
     /// No commanad is recognized
     None,
     /// Show the list of commands
+    #[strum(serialize = "Help", serialize = "?")]
     Help,
 }
 
-#[derive(Debug, Clone, EnumMessage, EnumIter)]
+#[derive(Debug, Default, Clone, EnumMessage, EnumIter)]
 pub(crate) enum ZellijAction {
+    // We need a default value… but only want to easily create any enum type. So by default we will use the first one, alphabetically.
+    #[default]
+
     /// Detach from the current session
     Detach,
     /// Edit a file in a new edit pane
@@ -54,7 +58,13 @@ impl ActionList {
             {
                 Self::Zellij(ZellijAction::Detach)
             }
-            "edit" => {
+            _ if ZellijAction::Edit(Default::default())
+                .get_serializations()
+                .iter()
+                .map(|a| a.to_lowercase())
+                .collect::<Vec<_>>()
+                .contains(&action) =>
+            {
                 let last = action_arguments.next_back();
                 let line_number = last
                     .clone()
@@ -75,10 +85,26 @@ impl ActionList {
                     cwd: None, // TODO: get the cwd
                 }))
             }
-            "new-pane" => Self::Zellij(ZellijAction::NewPane {
-                path: action_arguments.collect::<Vec<String>>().join(" "),
-            }),
-            "run" => {
+            _ if ZellijAction::NewPane {
+                path: Default::default(), // TODO: Am I forced to defines every variable. Can’t I just `Default::default()`?
+            }
+            .get_serializations()
+            .iter()
+            .map(|a| a.to_lowercase())
+            .collect::<Vec<_>>()
+            .contains(&action) =>
+            {
+                Self::Zellij(ZellijAction::NewPane {
+                    path: action_arguments.collect::<Vec<String>>().join(" "),
+                })
+            }
+            _ if ZellijAction::Run(Default::default())
+                .get_serializations()
+                .iter()
+                .map(|a| a.to_lowercase())
+                .collect::<Vec<_>>()
+                .contains(&action) =>
+            {
                 let mut cmd = String::new();
                 let mut args: Vec<String> = Default::default();
                 let mut cwd = Default::default();
@@ -108,7 +134,15 @@ impl ActionList {
             }
 
             // Technicals
-            "help" => Self::Technical(TechnicalAction::Help),
+            _ if TechnicalAction::Help
+                .get_serializations()
+                .iter()
+                .map(|a| a.to_lowercase())
+                .collect::<Vec<_>>()
+                .contains(&action) =>
+            {
+                Self::Technical(TechnicalAction::Help)
+            }
             _ => Self::Technical(TechnicalAction::None),
         }
     }
