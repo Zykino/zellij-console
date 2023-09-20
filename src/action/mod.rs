@@ -18,6 +18,16 @@ pub(crate) enum ZellijAction {
     // We need a default value… but only want to easily create any enum type. So by default we will use the first one, alphabetically.
     #[default]
 
+    /// Clear the last focused pane’s scroll buffer
+    #[strum(
+        serialize = "ClearScreen",
+        serialize = "Clear-Screen",
+        serialize = "Clear_Screen",
+        serialize = "Clear",
+        serialize = "cl"
+    )]
+    ClearScreen,
+
     /// Detach from the current session
     Detach,
     /// Edit a file in a new edit pane
@@ -49,6 +59,15 @@ impl ActionList {
 
         match action.as_str() {
             // ZellijAction
+            _ if ZellijAction::ClearScreen
+                .get_serializations()
+                .iter()
+                .map(|a| a.to_lowercase())
+                .collect::<Vec<_>>()
+                .contains(&action) =>
+            {
+                Self::Zellij(ZellijAction::ClearScreen)
+            }
             _ if ZellijAction::Detach
                 .get_serializations()
                 .iter()
@@ -163,20 +182,25 @@ impl Action {
 
 // Emulate a `String`
 impl Action {
-    pub(crate) fn push(&mut self, charactere: char) {
-        self.command.push(charactere);
+    fn parse_action(&mut self) {
         // TODO: maybe don’t reparse all each time?
         // if charactere.is_whitespace() {
         self.action = ActionList::parse(self.command.clone());
         // }
     }
+
+    pub(crate) fn push(&mut self, charactere: char) {
+        self.command.push(charactere);
+        self.parse_action();
+    }
     pub(crate) fn pop(&mut self) -> Option<char> {
         let res = self.command.pop();
-        // TODO: maybe don’t reparse all each time?
-        // if res.is_some_and(|c| c.is_whitespace()) {
-        self.action = ActionList::parse(self.command.clone());
-        // }
+        self.parse_action();
         res
+    }
+    pub(crate) fn clear(&mut self) {
+        self.command.clear();
+        self.parse_action();
     }
     pub(crate) fn len(&self) -> usize {
         self.command.len()

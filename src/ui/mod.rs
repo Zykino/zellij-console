@@ -63,6 +63,7 @@ impl Display for TechnicalAction {
 impl Display for ZellijAction {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let text = match self {
+            Self::ClearScreen => String::from("ClearScreen"),
             Self::Detach => String::from("Detach"),
             Self::Edit(FileToOpen {
                 path,

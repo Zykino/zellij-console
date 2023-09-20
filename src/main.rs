@@ -119,8 +119,12 @@ impl State {
             ActionList::Technical(_a) => {}
             ActionList::Zellij(a) => {
                 match a {
+                    ClearScreen => {
+                        // TODO: Clear applies on the focused pane, focus to the previous one before clearing the screen/scrollback
+                        // focus_previous_pane();
+                        clear_screen();
+                    }
                     Detach => {
-                        eprintln!("Je te demande de te détacher !");
                         detach();
                     }
                     Edit(FileToOpen {
@@ -170,6 +174,7 @@ impl State {
                         }
                     }
                 }
+                self.action.clear();
             }
         };
     }
