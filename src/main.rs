@@ -32,8 +32,11 @@ impl ZellijPlugin for State {
             PermissionType::ChangeApplicationState,
             PermissionType::RunCommands,
             PermissionType::OpenFiles,
+            PermissionType::OpenTerminalsOrPlugins,
         ]);
-        subscribe(&[EventType::PaneUpdate, EventType::TabUpdate, EventType::Key]);
+        subscribe(&[
+            /*EventType::PaneUpdate, EventType::TabUpdate,*/ EventType::Key,
+        ]);
     }
 
     fn update(&mut self, event: Event) -> bool {
