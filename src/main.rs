@@ -27,7 +27,7 @@ struct State {
 register_plugin!(State);
 
 impl ZellijPlugin for State {
-    fn load(&mut self, _configuration: BTreeMap<String, String>) {
+    fn load(&mut self, configuration: BTreeMap<String, String>) {
         request_permission(&[
             PermissionType::ChangeApplicationState,
             PermissionType::RunCommands,
@@ -37,6 +37,9 @@ impl ZellijPlugin for State {
         subscribe(&[
             /*EventType::PaneUpdate, EventType::TabUpdate,*/ EventType::Key,
         ]);
+
+        // TODO: This may change as I’m not convinced the `configuration`’s API is good for this
+        self.action.set(format!("{}", configuration["command"]));
     }
 
     fn update(&mut self, event: Event) -> bool {

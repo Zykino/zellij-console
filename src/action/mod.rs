@@ -180,7 +180,6 @@ impl Action {
     }
 }
 
-// Emulate a `String`
 impl Action {
     fn parse_action(&mut self) {
         // TODO: maybe don’t reparse all each time?
@@ -189,6 +188,12 @@ impl Action {
         // }
     }
 
+    pub(crate) fn set(&mut self, command: String) {
+        self.command = command;
+        self.parse_action();
+    }
+
+    // Emulate a `String`
     pub(crate) fn push(&mut self, charactere: char) {
         self.command.push(charactere);
         self.parse_action();
