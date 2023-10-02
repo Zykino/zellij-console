@@ -130,6 +130,8 @@ impl State {
                         // focus_previous_pane();
                         clear_screen();
                     }
+                    CloseFocus => close_focus(),
+                    CloseFocusTab => close_focused_tab(),
                     Detach => {
                         detach();
                     }

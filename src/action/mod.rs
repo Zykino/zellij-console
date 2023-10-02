@@ -27,6 +27,15 @@ pub(crate) enum ZellijAction {
         serialize = "cl"
     )]
     ClearScreen,
+    /// Close the focused pane
+    CloseFocus,
+    /// Close the focused tab
+    #[strum(
+        serialize = "CloseFocusTab",
+        serialize = "Close-Focus-Tab",
+        serialize = "Close_Focus_Tab"
+    )]
+    CloseFocusTab,
 
     /// Detach from the current session
     Detach,
@@ -68,6 +77,25 @@ impl ActionList {
             {
                 Self::Zellij(ZellijAction::ClearScreen)
             }
+            _ if ZellijAction::CloseFocus
+                .get_serializations()
+                .iter()
+                .map(|a| a.to_lowercase())
+                .collect::<Vec<_>>()
+                .contains(&action) =>
+            {
+                Self::Zellij(ZellijAction::CloseFocus)
+            }
+            _ if ZellijAction::CloseFocusTab
+                .get_serializations()
+                .iter()
+                .map(|a| a.to_lowercase())
+                .collect::<Vec<_>>()
+                .contains(&action) =>
+            {
+                Self::Zellij(ZellijAction::CloseFocusTab)
+            }
+
             _ if ZellijAction::Detach
                 .get_serializations()
                 .iter()
