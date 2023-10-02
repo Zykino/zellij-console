@@ -39,7 +39,10 @@ impl ZellijPlugin for State {
         ]);
 
         // TODO: This may change as I’m not convinced the `configuration`’s API is good for this
-        self.action.set(format!("{}", configuration["command"]));
+        self.action.set(format!(
+            "{}",
+            configuration.get("command").unwrap_or(&Default::default())
+        ));
     }
 
     fn update(&mut self, event: Event) -> bool {
