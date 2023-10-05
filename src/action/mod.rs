@@ -78,6 +78,16 @@ pub(crate) enum ActionList {
     Zellij(ZellijAction),
 }
 
+macro_rules! deserialize_action {
+    ( $x:expr, $action:ident ) => {
+        $x.get_serializations()
+            .iter()
+            .map(|a| a.to_lowercase())
+            .collect::<Vec<_>>()
+            .contains(&$action)
+    };
+}
+
 impl ActionList {
     fn parse(command: String) -> Self {
         let mut split = command.split_whitespace();
@@ -87,50 +97,20 @@ impl ActionList {
 
         match action.as_str() {
             // ZellijAction
-            _ if ZellijAction::ClearScreen
-                .get_serializations()
-                .iter()
-                .map(|a| a.to_lowercase())
-                .collect::<Vec<_>>()
-                .contains(&action) =>
-            {
+            _ if deserialize_action!(ZellijAction::ClearScreen, action) => {
                 Self::Zellij(ZellijAction::ClearScreen)
             }
-            _ if ZellijAction::CloseFocus
-                .get_serializations()
-                .iter()
-                .map(|a| a.to_lowercase())
-                .collect::<Vec<_>>()
-                .contains(&action) =>
-            {
+            _ if deserialize_action!(ZellijAction::CloseFocus, action) => {
                 Self::Zellij(ZellijAction::CloseFocus)
             }
-            _ if ZellijAction::CloseFocusTab
-                .get_serializations()
-                .iter()
-                .map(|a| a.to_lowercase())
-                .collect::<Vec<_>>()
-                .contains(&action) =>
-            {
+            _ if deserialize_action!(ZellijAction::CloseFocusTab, action) => {
                 Self::Zellij(ZellijAction::CloseFocusTab)
             }
 
-            _ if ZellijAction::Detach
-                .get_serializations()
-                .iter()
-                .map(|a| a.to_lowercase())
-                .collect::<Vec<_>>()
-                .contains(&action) =>
-            {
+            _ if deserialize_action!(ZellijAction::Detach, action) => {
                 Self::Zellij(ZellijAction::Detach)
             }
-            _ if ZellijAction::Edit(Default::default())
-                .get_serializations()
-                .iter()
-                .map(|a| a.to_lowercase())
-                .collect::<Vec<_>>()
-                .contains(&action) =>
-            {
+            _ if deserialize_action!(ZellijAction::Edit(Default::default()), action) => {
                 let last = action_arguments.next_back();
                 let line_number = last
                     .clone()
@@ -151,26 +131,18 @@ impl ActionList {
                     cwd: None, // TODO: get the cwd
                 }))
             }
-            _ if ZellijAction::NewPane {
-                path: Default::default(), // TODO: Am I forced to defines every variable. Can’t I just `Default::default()`?
-            }
-            .get_serializations()
-            .iter()
-            .map(|a| a.to_lowercase())
-            .collect::<Vec<_>>()
-            .contains(&action) =>
+            _ if deserialize_action!(
+                ZellijAction::NewPane {
+                    path: Default::default(), // TODO: Am I forced to defines every variable. Can’t I just `Default::default()`?
+                },
+                action
+            ) =>
             {
                 Self::Zellij(ZellijAction::NewPane {
                     path: action_arguments.collect::<Vec<String>>().join(" "),
                 })
             }
-            _ if ZellijAction::Run(Default::default())
-                .get_serializations()
-                .iter()
-                .map(|a| a.to_lowercase())
-                .collect::<Vec<_>>()
-                .contains(&action) =>
-            {
+            _ if deserialize_action!(ZellijAction::Run(Default::default()), action) => {
                 let mut cmd = String::new();
                 let mut args: Vec<String> = Default::default();
                 let mut cwd = Default::default();
@@ -200,13 +172,7 @@ impl ActionList {
             }
 
             // Technicals
-            _ if TechnicalAction::Help
-                .get_serializations()
-                .iter()
-                .map(|a| a.to_lowercase())
-                .collect::<Vec<_>>()
-                .contains(&action) =>
-            {
+            _ if deserialize_action!(TechnicalAction::Help, action) => {
                 Self::Technical(TechnicalAction::Help)
             }
             _ => Self::Technical(TechnicalAction::None),
