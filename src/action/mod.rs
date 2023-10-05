@@ -28,12 +28,31 @@ pub(crate) enum ZellijAction {
     )]
     ClearScreen,
     /// Close the focused pane
+    #[strum(
+        serialize = "Close",
+        serialize = "Exit",
+        serialize = "CloseFocus",
+        serialize = "Close-Focus",
+        serialize = "Close_Focus",
+        serialize = "ClosePane",
+        serialize = "Close-Pane",
+        serialize = "Close_Pane",
+        serialize = "ExitFocus",
+        serialize = "Exit-Focus",
+        serialize = "Exit_Focus",
+        serialize = "ExitPane",
+        serialize = "Exit-Pane",
+        serialize = "Exit_Pane"
+    )]
     CloseFocus,
     /// Close the focused tab
     #[strum(
         serialize = "CloseFocusTab",
         serialize = "Close-Focus-Tab",
-        serialize = "Close_Focus_Tab"
+        serialize = "Close_Focus_Tab",
+        serialize = "CloseTab",
+        serialize = "Close-Tab",
+        serialize = "Close_Tab"
     )]
     CloseFocusTab,
 
