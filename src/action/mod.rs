@@ -78,14 +78,13 @@ pub(crate) enum ActionList {
     Zellij(ZellijAction),
 }
 
-macro_rules! deserialize_action {
-    ( $x:expr, $action:ident ) => {
-        $x.get_serializations()
-            .iter()
-            .map(|a| a.to_lowercase())
-            .collect::<Vec<_>>()
-            .contains(&$action)
-    };
+fn deserialize_action(action: &String, variant: impl EnumMessage) -> bool {
+    variant
+        .get_serializations()
+        .iter()
+        .map(|a| a.to_lowercase())
+        .collect::<Vec<_>>()
+        .contains(action)
 }
 
 impl ActionList {
@@ -97,20 +96,20 @@ impl ActionList {
 
         match action.as_str() {
             // ZellijAction
-            _ if deserialize_action!(ZellijAction::ClearScreen, action) => {
+            _ if deserialize_action(&action, ZellijAction::ClearScreen) => {
                 Self::Zellij(ZellijAction::ClearScreen)
             }
-            _ if deserialize_action!(ZellijAction::CloseFocus, action) => {
+            _ if deserialize_action(&action, ZellijAction::CloseFocus) => {
                 Self::Zellij(ZellijAction::CloseFocus)
             }
-            _ if deserialize_action!(ZellijAction::CloseFocusTab, action) => {
+            _ if deserialize_action(&action, ZellijAction::CloseFocusTab) => {
                 Self::Zellij(ZellijAction::CloseFocusTab)
             }
 
-            _ if deserialize_action!(ZellijAction::Detach, action) => {
+            _ if deserialize_action(&action, ZellijAction::Detach) => {
                 Self::Zellij(ZellijAction::Detach)
             }
-            _ if deserialize_action!(ZellijAction::Edit(Default::default()), action) => {
+            _ if deserialize_action(&action, ZellijAction::Edit(Default::default())) => {
                 let last = action_arguments.next_back();
                 let line_number = last
                     .clone()
@@ -131,18 +130,18 @@ impl ActionList {
                     cwd: None, // TODO: get the cwd
                 }))
             }
-            _ if deserialize_action!(
+            _ if deserialize_action(
+                &action,
                 ZellijAction::NewPane {
                     path: Default::default(), // TODO: Am I forced to defines every variable. Can’t I just `Default::default()`?
                 },
-                action
             ) =>
             {
                 Self::Zellij(ZellijAction::NewPane {
                     path: action_arguments.collect::<Vec<String>>().join(" "),
                 })
             }
-            _ if deserialize_action!(ZellijAction::Run(Default::default()), action) => {
+            _ if deserialize_action(&action, ZellijAction::Run(Default::default())) => {
                 let mut cmd = String::new();
                 let mut args: Vec<String> = Default::default();
                 let mut cwd = Default::default();
@@ -172,7 +171,7 @@ impl ActionList {
             }
 
             // Technicals
-            _ if deserialize_action!(TechnicalAction::Help, action) => {
+            _ if deserialize_action(&action, TechnicalAction::Help) => {
                 Self::Technical(TechnicalAction::Help)
             }
             _ => Self::Technical(TechnicalAction::None),
