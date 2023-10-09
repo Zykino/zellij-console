@@ -124,6 +124,8 @@ impl State {
         match action {
             ActionList::Technical(_a) => {}
             ActionList::Zellij(a) => {
+                let mut done = true;
+
                 match a {
                     ClearScreen => {
                         // TODO: Clear applies on the focused pane, focus to the previous one before clearing the screen/scrollback
@@ -132,6 +134,14 @@ impl State {
                     }
                     CloseFocus => close_focus(),
                     CloseFocusTab => close_focused_tab(),
+                    ClosePluginPane { id } => match id {
+                        Some(id) => close_plugin_pane(id),
+                        None => done = false,
+                    },
+                    CloseTerminalPane { id } => match id {
+                        Some(id) => close_terminal_pane(id),
+                        None => done = false,
+                    },
                     Detach => {
                         detach();
                     }
@@ -182,7 +192,10 @@ impl State {
                         }
                     }
                 }
-                self.action.clear();
+
+                if done {
+                    self.action.clear();
+                }
             }
         };
     }

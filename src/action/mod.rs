@@ -55,6 +55,26 @@ pub(crate) enum ZellijAction {
         serialize = "Close_Tab"
     )]
     CloseFocusTab,
+    /// Close the specified plugin pane
+    #[strum(
+        serialize = "ClosePluginPane",
+        serialize = "Close-Plugin-Pane",
+        serialize = "Close_Plugin_Pane",
+        serialize = "ClosePlugin",
+        serialize = "Close-Plugin",
+        serialize = "Close_Plugin"
+    )]
+    ClosePluginPane { id: Option<u32> },
+    /// Close the specified terminal pane
+    #[strum(
+        serialize = "CloseTerminalPane",
+        serialize = "Close-Terminal-Pane",
+        serialize = "Close_Terminal_Pane",
+        serialize = "CloseTerminal",
+        serialize = "Close-Terminal",
+        serialize = "Close_Terminal"
+    )]
+    CloseTerminalPane { id: Option<u32> },
 
     /// Detach from the current session
     Detach,
@@ -104,6 +124,34 @@ impl ActionList {
             }
             _ if deserialize_action(&action, ZellijAction::CloseFocusTab) => {
                 Self::Zellij(ZellijAction::CloseFocusTab)
+            }
+            _ if deserialize_action(
+                &action,
+                ZellijAction::ClosePluginPane {
+                    id: Default::default(), // TODO: Am I forced to defines every variable. Can’t I just `Default::default()`?                },
+                },
+            ) =>
+            {
+                let id = action_arguments
+                    .last()
+                    .map(|s| s.parse::<u32>().ok())
+                    .unwrap_or_default();
+
+                Self::Zellij(ZellijAction::ClosePluginPane { id })
+            }
+            _ if deserialize_action(
+                &action,
+                ZellijAction::CloseTerminalPane {
+                    id: Default::default(), // TODO: Am I forced to defines every variable. Can’t I just `Default::default()`?                },
+                },
+            ) =>
+            {
+                let id = action_arguments
+                    .last()
+                    .map(|s| s.parse::<u32>().ok())
+                    .unwrap_or_default();
+
+                Self::Zellij(ZellijAction::CloseTerminalPane { id })
             }
 
             _ if deserialize_action(&action, ZellijAction::Detach) => {
@@ -163,6 +211,7 @@ impl ActionList {
                     };
                     val = action_arguments.next();
                 }
+
                 Self::Zellij(ZellijAction::Run(CommandToRun {
                     path: cmd.into(),
                     args,

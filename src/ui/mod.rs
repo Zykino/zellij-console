@@ -66,6 +66,16 @@ impl Display for ZellijAction {
             Self::ClearScreen => String::from("ClearScreen"),
             Self::CloseFocus => String::from("CloseFocus"),
             Self::CloseFocusTab => String::from("CloseFocusTab "),
+            Self::ClosePluginPane { id } => format!(
+                "ClosePluginPane\n{} {}",
+                styled_text_foreground(REQUIRED_COLOR, &bold("PATH:")),
+                id.unwrap_or_default() // TODO: not default when unset…
+            ),
+            Self::CloseTerminalPane { id } => format!(
+                "CloseTerminalPane\n{} {}",
+                styled_text_foreground(REQUIRED_COLOR, &bold("PATH:")),
+                id.unwrap_or_default() // TODO: not default when unset…
+            ),
             Self::Detach => String::from("Detach"),
             Self::Edit(FileToOpen {
                 path,
