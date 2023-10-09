@@ -142,6 +142,9 @@ impl State {
                         Some(id) => close_terminal_pane(id),
                         None => done = false,
                     },
+                    DecodeLengthDelimiter { buffer } => {
+                        let _ = decode_length_delimiter(buffer.as_slice());
+                    }
                     Detach => {
                         detach();
                     }

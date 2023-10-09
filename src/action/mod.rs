@@ -75,7 +75,8 @@ pub(crate) enum ZellijAction {
         serialize = "Close_Terminal"
     )]
     CloseTerminalPane { id: Option<u32> },
-
+    /// Decodes a length delimiter from the buffer. This is a technical option, not really intended for end user.
+    DecodeLengthDelimiter { buffer: Vec<u8> },
     /// Detach from the current session
     Detach,
     /// Edit a file in a new edit pane
@@ -153,9 +154,19 @@ impl ActionList {
 
                 Self::Zellij(ZellijAction::CloseTerminalPane { id })
             }
-
             _ if deserialize_action(&action, ZellijAction::Detach) => {
                 Self::Zellij(ZellijAction::Detach)
+            }
+            _ if deserialize_action(
+                &action,
+                ZellijAction::DecodeLengthDelimiter {
+                    buffer: Default::default(),
+                },
+            ) =>
+            {
+                Self::Zellij(ZellijAction::DecodeLengthDelimiter {
+                    buffer: action_arguments.collect::<String>().into_bytes(),
+                })
             }
             _ if deserialize_action(&action, ZellijAction::Edit(Default::default())) => {
                 let last = action_arguments.next_back();

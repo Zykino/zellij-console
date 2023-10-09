@@ -76,6 +76,12 @@ impl Display for ZellijAction {
                 styled_text_foreground(REQUIRED_COLOR, &bold("PATH:")),
                 id.unwrap_or_default() // TODO: not default when unset…
             ),
+            Self::DecodeLengthDelimiter { buffer } => format!(
+                "DecodeLengthDelimiter\n{} {:?}:{:?}",
+                styled_text_foreground(REQUIRED_COLOR, &bold("PATH:")),
+                zellij_tile::shim::decode_length_delimiter(buffer.as_slice()),
+                buffer
+            ),
             Self::Detach => String::from("Detach"),
             Self::Edit(FileToOpen {
                 path,
