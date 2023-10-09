@@ -62,7 +62,7 @@ impl Display for TechnicalAction {
 
 impl Display for ZellijAction {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let text = match self {
+        let text = match self.clone() {
             Self::ClearScreen => String::from("ClearScreen"),
             Self::CloseFocus => String::from("CloseFocus"),
             Self::CloseFocusTab => String::from("CloseFocusTab "),
@@ -83,6 +83,14 @@ impl Display for ZellijAction {
                 buffer
             ),
             Self::Detach => String::from("Detach"),
+            Self::EditScrollback => String::from("EditScrollback"),
+            Self::EncodeLengthDelimiter { mut buffer } => format!(
+                "EncodeLengthDelimiter\n{} {:?}:{:?}",
+                styled_text_foreground(REQUIRED_COLOR, &bold("PATH:")),
+                zellij_tile::shim::encode_length_delimiter(buffer.len(), &mut buffer),
+                buffer
+            ),
+
             Self::Edit(FileToOpen {
                 path,
                 line_number: line,

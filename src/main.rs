@@ -148,6 +148,15 @@ impl State {
                     Detach => {
                         detach();
                     }
+                    EditScrollback => {
+                        // TODO: Edit scrollback applies on the focused pane, focus to the previous one before clearing the screen/scrollback
+                        // focus_previous_pane();
+                        edit_scrollback();
+                    }
+                    EncodeLengthDelimiter { mut buffer } => {
+                        let _ = encode_length_delimiter(buffer.len(), &mut buffer);
+                    }
+
                     Edit(FileToOpen {
                         path,
                         line_number,

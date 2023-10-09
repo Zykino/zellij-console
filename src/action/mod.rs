@@ -79,6 +79,10 @@ pub(crate) enum ZellijAction {
     DecodeLengthDelimiter { buffer: Vec<u8> },
     /// Detach from the current session
     Detach,
+    /// Edit a pane scrollback
+    EditScrollback,
+    /// Encode a length delimiter to the buffer. This is a technical option, not really intended for end user.
+    EncodeLengthDelimiter { buffer: Vec<u8> },
     /// Edit a file in a new edit pane
     Edit(FileToOpen),
     /// Open a new pane in the current tab
@@ -154,9 +158,6 @@ impl ActionList {
 
                 Self::Zellij(ZellijAction::CloseTerminalPane { id })
             }
-            _ if deserialize_action(&action, ZellijAction::Detach) => {
-                Self::Zellij(ZellijAction::Detach)
-            }
             _ if deserialize_action(
                 &action,
                 ZellijAction::DecodeLengthDelimiter {
@@ -168,6 +169,24 @@ impl ActionList {
                     buffer: action_arguments.collect::<String>().into_bytes(),
                 })
             }
+            _ if deserialize_action(&action, ZellijAction::Detach) => {
+                Self::Zellij(ZellijAction::Detach)
+            }
+            _ if deserialize_action(&action, ZellijAction::EditScrollback) => {
+                Self::Zellij(ZellijAction::EditScrollback)
+            }
+            _ if deserialize_action(
+                &action,
+                ZellijAction::EncodeLengthDelimiter {
+                    buffer: Default::default(),
+                },
+            ) =>
+            {
+                Self::Zellij(ZellijAction::EncodeLengthDelimiter {
+                    buffer: action_arguments.collect::<String>().into_bytes(),
+                })
+            }
+
             _ if deserialize_action(&action, ZellijAction::Edit(Default::default())) => {
                 let last = action_arguments.next_back();
                 let line_number = last
