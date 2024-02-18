@@ -20,8 +20,8 @@ struct State {
     display_rows: usize,
     display_columns: usize,
     // displayed_search_results: (usize, Vec<String>), // usize is selected index
-    last_pane: PaneManifest,
-    last_tab: TabInfo, // TODO: useless?
+    // last_pane: PaneManifest,
+    // last_tab: TabInfo, // TODO: useless?
 }
 
 register_plugin!(State);
@@ -49,6 +49,12 @@ impl ZellijPlugin for State {
         let mut should_render = false;
 
         match event {
+            // Event::ModeUpdate(mode_info) => {
+            //     let mode = format!("{:?}", mode_info.mode);
+            //     let count = self.mode_log.entry(mode).or_insert(0);
+            //     *count += 1;
+            //     should_render = true;
+            // }
             // Event::PaneUpdate(pane_info) => {
             //     self.last_pane = pane_info;
             //     // should_render = true;
