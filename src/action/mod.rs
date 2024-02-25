@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use strum::{EnumMessage, IntoEnumIterator};
+use strum::EnumMessage;
 use strum_macros::{EnumIter, EnumMessage};
 
 use zellij_tile::prelude::{CommandToRun, FileToOpen};
@@ -83,6 +83,7 @@ pub(crate) enum ZellijAction {
     EditScrollback,
     /// Encode a length delimiter to the buffer. This is a technical option, not really intended for end user.
     EncodeLengthDelimiter { buffer: Vec<u8> },
+
     /// Edit a file in a new edit pane
     Edit(FileToOpen),
     /// Open a new pane in the current tab
@@ -253,6 +254,7 @@ impl ActionList {
             _ if deserialize_action(&action, TechnicalAction::Help) => {
                 Self::Technical(TechnicalAction::Help)
             }
+
             _ => Self::Technical(TechnicalAction::None),
         }
     }

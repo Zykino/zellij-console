@@ -13,8 +13,8 @@ struct State {
     action: Action,
     // file_name_search_results: Vec<String>,
     // file_contents_search_results: Vec<String>,
-    loading: bool,
-    loading_animation_offset: u8,
+    // loading: bool,
+    // loading_animation_offset: u8,
     should_open_floating: bool,
     search_filter: EnvironmentFrom,
     display_rows: usize,
@@ -189,7 +189,6 @@ impl State {
                     }
                     Run(CommandToRun { path, args, cwd }) => {
                         let (path, args) = match self.search_filter {
-                            // TODO: get this as parameter
                             EnvironmentFrom::ZellijSession => (path, args),
                             EnvironmentFrom::DefaultShell => {
                                 let mut a = vec![
