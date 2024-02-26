@@ -1,11 +1,11 @@
 use std::fmt::{Display, Formatter};
-use strum::{EnumMessage, IntoEnumIterator};
+use strum::{EnumMessage, EnumProperty, IntoEnumIterator};
 
 use zellij_tile::prelude::{ui_components::*, CommandToRun, FileToOpen};
 mod zellij_ui_ext;
 use zellij_ui_ext::*;
 
-use crate::action::{ActionList, TechnicalAction, ZellijAction};
+use crate::action::ActionList;
 use crate::{EnvironmentFrom, State};
 
 // TODO: use the user’s theme, when available in Zellij
@@ -22,25 +22,28 @@ const REQUIRED_COLOR: u8 = GRAY_DARK;
 const OPTIONAL_COLOR: u8 = GRAY_LIGHT;
 const UNSETTABLE_COLOR: u8 = ORANGE;
 
-impl Display for TechnicalAction {
+impl Display for ActionList {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let text = match self {
-            Self::None => {
-                vec![NestedListItem::new(
-                    r#"Type a command or "help" if you need a list of commands"#,
-                )
-                .color_range(1, 19..23)]
+        // TODO: remove the clone? Only needed because `EncodeLengthDelimiter` need a mutable access
+        let text = match self.clone() {
+            Self::Unknown => {
+                let text = Text::new(r#"Type a command or "help" if you need a list of commands"#)
+                    .color_range(1, 19..23);
+                format_text(text)
             }
-            Self::Help => {
-                ZellijAction::iter()
-                    .flat_map(|variant| {
+            Self::Help { selection } => {
+                let text = ActionList::iter()
+                    .filter(|v| v.get_str("Hidden").is_none())
+                    .enumerate()
+                    .flat_map(|(i, variant)| -> Vec<NestedListItem> {
                         let name = variant
                             .get_serializations()
                             .first()
                             .expect("At least one serialization is garanteed");
                         let shortcut = "Shortcut variants";
 
-                        [
+                        let mut result = Vec::with_capacity(2);
+                        result.push(
                             NestedListItem::new(&format!(
                                 "{}:\t{}",
                                 name,
@@ -49,29 +52,31 @@ impl Display for TechnicalAction {
                                 ))
                             ))
                             .color_range(1, 0..name.len()),
+                        );
+
+                        if i == selection.row as usize {
                             // TODO: Maybe only show the other ways of writing the command when selected when the line is selected
                             // TODO: When selected, "Enter" should use that commands to replace the current command
-                            NestedListItem::new(&format!(
-                                "{}:\t{}",
-                                shortcut,
-                                variant.get_serializations().join(", ")
-                            ))
-                            .indent(1)
-                            .color_range(2, 0..shortcut.len()),
-                        ]
+                            result.push(
+                                NestedListItem::new(&format!(
+                                    "{}:\t{}",
+                                    shortcut,
+                                    variant.get_serializations().join(", ")
+                                ))
+                                .indent(1)
+                                .color_range(2, 0..shortcut.len()),
+                            );
+
+                            result.iter().map(|item| item.clone().selected()).collect()
+                        } else {
+                            result.iter().map(|item| item.to_owned()).collect()
+                        }
                     })
-                    .collect()
+                    .collect();
+
+                format_nested_list(text)
             }
-        };
 
-        write!(f, "{}", format_nested_list(text))
-    }
-}
-
-impl Display for ZellijAction {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        // TODO: remove the clone? Only needed because `EncodeLengthDelimiter` need a mutable access
-        let text = match self.clone() {
             Self::ClearScreen => String::from("ClearScreen"),
             Self::CloseFocus => String::from("CloseFocus"),
             Self::CloseFocusTab => String::from("CloseFocusTab "),
@@ -129,23 +134,15 @@ impl Display for ZellijAction {
             ),
         };
 
-        // TODO: Should this be in the ActionList impl? The user may not need to know about this distinction of commands
-        //       At the same time, maybe we need to add an equivalent in the TechnicalAction impl?
-        let text = format!(
-            "{} {}",
-            styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
-            text
-        );
-
-        write!(f, "{}", text)
-    }
-}
-
-impl Display for ActionList {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let text = match self {
-            Self::Technical(t) => t.to_string(),
-            Self::Zellij(z) => z.to_string(),
+            Self::Unknown | Self::Help { .. } => text,
+            _ => {
+                format!(
+                    "{} {}",
+                    styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
+                    text
+                )
+            }
         };
 
         write!(f, "{}", text)
@@ -179,7 +176,7 @@ impl State {
 
         format_ribbon_line(
             vec![tiled_floating_control, names_contents_control],
-            self.display_rows,
+            self.display.rows,
             None,
             None,
         )

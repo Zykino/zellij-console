@@ -1,23 +1,31 @@
 use std::path::PathBuf;
-use strum::EnumMessage;
-use strum_macros::{EnumIter, EnumMessage};
+use strum::{EnumMessage, EnumProperty, IntoEnumIterator};
+use strum_macros::{EnumIter, EnumMessage, EnumProperty};
 
 use zellij_tile::prelude::{CommandToRun, FileToOpen};
 
-#[derive(Debug, Clone, EnumMessage)]
-pub(crate) enum TechnicalAction {
-    /// No commanad is recognized
-    None,
-    /// Show the list of commands
-    #[strum(serialize = "Help", serialize = "?")]
-    Help,
+#[derive(Default, Debug, Clone, Copy)]
+pub(crate) struct Selection {
+    pub(crate) row: isize,
+    max: isize,
 }
 
-#[derive(Debug, Default, Clone, EnumMessage, EnumIter)]
-pub(crate) enum ZellijAction {
-    // We need a default value… but only want to easily create any enum type. So by default we will use the first one, alphabetically.
+#[derive(Debug, Default, Clone, EnumIter, EnumMessage, EnumProperty)]
+pub(crate) enum ActionList {
+    /*
+        Technical actions
+    */
+    /// No action have been recognized
     #[default]
+    #[strum(props(Hidden = "True"))] // FIXME: Find a better property name and value
+    Unknown,
+    /// Show the list of commands
+    #[strum(serialize = "Help", serialize = "?")]
+    Help { selection: Selection },
 
+    /*
+        Zellij actions (sorted alphabetically)
+    */
     /// Clear the last focused pane’s scroll buffer
     #[strum(
         serialize = "ClearScreen",
@@ -98,12 +106,6 @@ pub(crate) enum ZellijAction {
     Run(CommandToRun),
 }
 
-#[derive(Debug, Clone, EnumMessage)]
-pub(crate) enum ActionList {
-    Technical(TechnicalAction),
-    Zellij(ZellijAction),
-}
-
 fn deserialize_action(action: &String, variant: impl EnumMessage) -> bool {
     variant
         .get_serializations()
@@ -121,19 +123,15 @@ impl ActionList {
         let mut action_arguments = split.map(|v| v.to_owned());
 
         match action.as_str() {
-            // ZellijAction
-            _ if deserialize_action(&action, ZellijAction::ClearScreen) => {
-                Self::Zellij(ZellijAction::ClearScreen)
-            }
-            _ if deserialize_action(&action, ZellijAction::CloseFocus) => {
-                Self::Zellij(ZellijAction::CloseFocus)
-            }
-            _ if deserialize_action(&action, ZellijAction::CloseFocusTab) => {
-                Self::Zellij(ZellijAction::CloseFocusTab)
+            // Zellij actions
+            _ if deserialize_action(&action, ActionList::ClearScreen) => ActionList::ClearScreen,
+            _ if deserialize_action(&action, ActionList::CloseFocus) => ActionList::CloseFocus,
+            _ if deserialize_action(&action, ActionList::CloseFocusTab) => {
+                ActionList::CloseFocusTab
             }
             _ if deserialize_action(
                 &action,
-                ZellijAction::ClosePluginPane {
+                ActionList::ClosePluginPane {
                     id: Default::default(), // TODO: Am I forced to defines every variable. Can’t I just `Default::default()`?                },
                 },
             ) =>
@@ -143,11 +141,11 @@ impl ActionList {
                     .map(|s| s.parse::<u32>().ok())
                     .unwrap_or_default();
 
-                Self::Zellij(ZellijAction::ClosePluginPane { id })
+                ActionList::ClosePluginPane { id }
             }
             _ if deserialize_action(
                 &action,
-                ZellijAction::CloseTerminalPane {
+                ActionList::CloseTerminalPane {
                     id: Default::default(), // TODO: Am I forced to defines every variable. Can’t I just `Default::default()`?                },
                 },
             ) =>
@@ -157,38 +155,36 @@ impl ActionList {
                     .map(|s| s.parse::<u32>().ok())
                     .unwrap_or_default();
 
-                Self::Zellij(ZellijAction::CloseTerminalPane { id })
+                ActionList::CloseTerminalPane { id }
             }
             _ if deserialize_action(
                 &action,
-                ZellijAction::DecodeLengthDelimiter {
+                ActionList::DecodeLengthDelimiter {
                     buffer: Default::default(),
                 },
             ) =>
             {
-                Self::Zellij(ZellijAction::DecodeLengthDelimiter {
+                ActionList::DecodeLengthDelimiter {
                     buffer: action_arguments.collect::<String>().into_bytes(),
-                })
+                }
             }
-            _ if deserialize_action(&action, ZellijAction::Detach) => {
-                Self::Zellij(ZellijAction::Detach)
-            }
-            _ if deserialize_action(&action, ZellijAction::EditScrollback) => {
-                Self::Zellij(ZellijAction::EditScrollback)
+            _ if deserialize_action(&action, ActionList::Detach) => ActionList::Detach,
+            _ if deserialize_action(&action, ActionList::EditScrollback) => {
+                ActionList::EditScrollback
             }
             _ if deserialize_action(
                 &action,
-                ZellijAction::EncodeLengthDelimiter {
+                ActionList::EncodeLengthDelimiter {
                     buffer: Default::default(),
                 },
             ) =>
             {
-                Self::Zellij(ZellijAction::EncodeLengthDelimiter {
+                ActionList::EncodeLengthDelimiter {
                     buffer: action_arguments.collect::<String>().into_bytes(),
-                })
+                }
             }
 
-            _ if deserialize_action(&action, ZellijAction::Edit(Default::default())) => {
+            _ if deserialize_action(&action, ActionList::Edit(Default::default())) => {
                 let last = action_arguments.next_back();
                 let line_number = last
                     .clone()
@@ -203,24 +199,24 @@ impl ActionList {
                     path.push_str(&last.unwrap_or_default())
                 }
 
-                Self::Zellij(ZellijAction::Edit(FileToOpen {
+                ActionList::Edit(FileToOpen {
                     path: path.into(),
                     line_number,
                     cwd: None, // TODO: get the cwd
-                }))
+                })
             }
             _ if deserialize_action(
                 &action,
-                ZellijAction::NewPane {
-                    path: Default::default(), // TODO: Am I forced to defines every variable. Can’t I just `Default::default()`?
+                ActionList::NewPane {
+                    path: Default::default(),
                 },
             ) =>
             {
-                Self::Zellij(ZellijAction::NewPane {
+                ActionList::NewPane {
                     path: action_arguments.collect::<Vec<String>>().join(" "),
-                })
+                }
             }
-            _ if deserialize_action(&action, ZellijAction::Run(Default::default())) => {
+            _ if deserialize_action(&action, ActionList::Run(Default::default())) => {
                 let mut cmd = String::new();
                 let mut args: Vec<String> = Default::default();
                 let mut cwd = Default::default();
@@ -243,19 +239,34 @@ impl ActionList {
                     val = action_arguments.next();
                 }
 
-                Self::Zellij(ZellijAction::Run(CommandToRun {
+                ActionList::Run(CommandToRun {
                     path: cmd.into(),
                     args,
                     cwd,
-                }))
+                })
             }
 
             // Technicals
-            _ if deserialize_action(&action, TechnicalAction::Help) => {
-                Self::Technical(TechnicalAction::Help)
+            _ if deserialize_action(
+                &action,
+                ActionList::Help {
+                    selection: Default::default(),
+                },
+            ) =>
+            {
+                let max = ActionList::iter()
+                    .filter(|v| v.get_str("Hidden").is_none())
+                    .count() as isize;
+                ActionList::Help {
+                    // selection: { max = ActionList::iter().count() as isize..Default::default() },
+                    selection: Selection {
+                        max,
+                        ..Default::default()
+                    },
+                }
             }
 
-            _ => Self::Technical(TechnicalAction::None),
+            _ => ActionList::Unknown,
         }
     }
 }
@@ -306,13 +317,36 @@ impl Action {
     pub(crate) fn as_str(&self) -> &str {
         &self.command
     }
+
+    pub(crate) fn selection_up(&mut self) {
+        self.action = match self.action {
+            ActionList::Help { mut selection } => {
+                selection.row = selection.row - 1;
+                if selection.row < 0 {
+                    selection.row = selection.max - 1
+                }
+                ActionList::Help { selection }
+            }
+            _ => self.action.clone(),
+        }
+    }
+
+    pub(crate) fn selection_down(&mut self) {
+        self.action = match self.action {
+            ActionList::Help { mut selection } => {
+                selection.row = (selection.row + 1) % selection.max;
+                ActionList::Help { selection }
+            }
+            _ => self.action.clone(),
+        }
+    }
 }
 
 impl Default for Action {
     fn default() -> Self {
         Action {
             command: String::new(),
-            action: ActionList::Technical(TechnicalAction::None),
+            action: ActionList::Unknown,
         }
     }
 }
