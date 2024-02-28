@@ -32,8 +32,7 @@ impl Display for ActionList {
                 format_text(text)
             }
             Self::Help { selection } => {
-                let text = ActionList::iter()
-                    .filter(|v| v.get_str("Hidden").is_none())
+                let text = ActionList::documentation()
                     .enumerate()
                     .flat_map(|(i, variant)| -> Vec<NestedListItem> {
                         let name = variant
@@ -175,7 +174,7 @@ impl State {
         let names_contents_control = self.new_filter_control("Ctrl + e", &self.search_filter);
 
         format_ribbon_line(
-            vec![tiled_floating_control, names_contents_control],
+            &[tiled_floating_control, names_contents_control],
             self.display.rows,
             None,
             None,

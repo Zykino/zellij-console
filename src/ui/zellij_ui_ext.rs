@@ -23,27 +23,6 @@ pub fn format_text_with_coordinates(
     )
 }
 
-pub fn format_ribbon_line(
-    texts: Vec<Text>,
-    y: usize,
-    width: Option<usize>,
-    height: Option<usize>,
-) -> String {
-    let x = 0;
-
-    let (first, rest) = match texts.split_first() {
-        Some(t) => t,
-        None => return String::new(),
-    };
-
-    format!(
-        "{}{}\u{1b}[48;5;{}m\u{1b}[0K",
-        format_ribbon_with_coordinates(first, x, y, width, height),
-        rest.iter().map(format_ribbon).collect::<String>(),
-        crate::ui::BLACK // TODO: use same background as ribbon // FIXME: may not be generalizable as I did not manage to do the front of the line too
-    )
-}
-
 pub fn format_ribbon(text: &Text) -> String {
     format!("\u{1b}Pzribbon;{}\u{1b}\\", text.serialize())
 }
@@ -65,6 +44,27 @@ pub fn format_ribbon_with_coordinates(
         width,
         height,
         text.serialize()
+    )
+}
+
+pub fn format_ribbon_line(
+    texts: &[Text],
+    y: usize,
+    width: Option<usize>,
+    height: Option<usize>,
+) -> String {
+    let x = 0;
+
+    let (first, rest) = match texts.split_first() {
+        Some(t) => t,
+        None => return String::new(),
+    };
+
+    format!(
+        "{}{}\u{1b}[48;5;{}m\u{1b}[0K",
+        format_ribbon_with_coordinates(first, x, y, width, height),
+        rest.iter().map(format_ribbon).collect::<String>(),
+        crate::ui::BLACK // TODO: use same background as ribbon // FIXME: may not be generalizable as I did not manage to do the front of the line too
     )
 }
 

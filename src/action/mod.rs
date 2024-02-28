@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::binary_heap::Iter, iter::FilterMap, path::PathBuf};
 use strum::{EnumMessage, EnumProperty, IntoEnumIterator};
 use strum_macros::{EnumIter, EnumMessage, EnumProperty};
 
@@ -6,8 +6,8 @@ use zellij_tile::prelude::{CommandToRun, FileToOpen};
 
 #[derive(Default, Debug, Clone, Copy)]
 pub(crate) struct Selection {
-    pub(crate) row: isize,
-    max: isize,
+    pub(crate) row: usize,
+    max: usize,
 }
 
 #[derive(Debug, Default, Clone, EnumIter, EnumMessage, EnumProperty)]
@@ -119,7 +119,6 @@ impl ActionList {
     fn parse(command: String) -> Self {
         let mut split = command.split_whitespace();
         let action = split.next().unwrap_or_default().to_lowercase();
-        // let action = action.as_str();
         let mut action_arguments = split.map(|v| v.to_owned());
 
         match action.as_str() {
@@ -254,11 +253,8 @@ impl ActionList {
                 },
             ) =>
             {
-                let max = ActionList::iter()
-                    .filter(|v| v.get_str("Hidden").is_none())
-                    .count() as isize;
+                let max = ActionList::documentation().count();
                 ActionList::Help {
-                    // selection: { max = ActionList::iter().count() as isize..Default::default() },
                     selection: Selection {
                         max,
                         ..Default::default()
@@ -268,6 +264,10 @@ impl ActionList {
 
             _ => ActionList::Unknown,
         }
+    }
+
+    pub(crate) fn documentation() -> impl Iterator<Item = ActionList> {
+        ActionList::iter().filter(|v| v.get_str("Hidden").is_none())
     }
 }
 
@@ -292,8 +292,8 @@ impl Action {
         // }
     }
 
-    pub(crate) fn set(&mut self, command: String) {
-        self.command = command;
+    pub(crate) fn set(&mut self, command: &str) {
+        self.command = command.to_string();
         self.parse_action();
     }
 

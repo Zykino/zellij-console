@@ -3,6 +3,7 @@ mod ui;
 
 use action::{Action, ActionList};
 
+use strum::EnumMessage;
 use zellij_tile::prelude::*;
 
 use serde::{Deserialize, Serialize};
@@ -39,7 +40,7 @@ impl ZellijPlugin for State {
         ]);
 
         // TODO: This may change as I’m not convinced the `configuration`’s API is good for this
-        self.action.set(format!(
+        self.action.set(&format!(
             "{}",
             configuration.get("command").unwrap_or(&Default::default())
         ));
@@ -204,7 +205,18 @@ impl State {
                     open_command_pane(cmd);
                 }
             }
-            ActionList::Help { selection } => todo!(),
+            ActionList::Help { selection } => {
+                done = false;
+
+                let variant = ActionList::documentation()
+                    .nth(selection.row)
+                    .expect("Selection {selection:?} is bounded to the iter size");
+                let s = variant.get_serializations().first().expect(&format!(
+                    "{variant:?} is garanteed to have a serialization string"
+                ));
+
+                self.action.set(s);
+            }
             ActionList::Unknown => {}
         }
 
