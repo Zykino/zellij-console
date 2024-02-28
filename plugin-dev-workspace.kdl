@@ -4,15 +4,18 @@ layout {
             plugin location="zellij:compact-bar"
         }
         pane split_direction="vertical" {
-            pane edit=""
-            pane stacked=true {
+            pane split_direction="horizontal" size="70%" {
+                pane edit=""
                 pane command="dash" name="Compile and reload plugin" {
-                    args "-c" "cargo build && zellij action start-or-reload-plugin file:target/wasm32-wasi/debug/zellij-console.wasm"
+                    // args "-c" "cargo build && zellij action start-or-reload-plugin file:/mnt/Data/Code/Target/Cargo/wasm32-wasi/debug/zellij-console.wasm"
                     // if you have "watchexec" installed, you can comment the above line and uncomment the below one to build + reload the plugin on fs changes
-                    // args "-c" "watchexec 'cargo build && zellij action start-or-reload-plugin file:target/wasm32-wasi/debug/rust-plugin-example.wasm'"
+                    args "-c" "watchexec --quiet --clear --watch src -- 'cargo build --quiet && zellij action start-or-reload-plugin file:/mnt/Data/Code/Target/Cargo/wasm32-wasi/debug/zellij-console.wasm'"
+                    size 10
                 }
+            }
+            pane stacked=true {
                 pane {
-                    plugin location="file:target/wasm32-wasi/debug/zellij-console.wasm"
+                    plugin location="file:/mnt/Data/Code/Target/Cargo/wasm32-wasi/debug/zellij-console.wasm"
                 }
                 pane command="gitui" {
                      start_suspended true
