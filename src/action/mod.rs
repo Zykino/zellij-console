@@ -83,14 +83,10 @@ pub(crate) enum ActionList {
         serialize = "Close_Terminal"
     )]
     CloseTerminalPane { id: Option<u32> },
-    /// Decodes a length delimiter from the buffer. This is a technical option, not really intended for end user.
-    DecodeLengthDelimiter { buffer: Vec<u8> },
     /// Detach from the current session
     Detach,
     /// Edit a pane scrollback
     EditScrollback,
-    /// Encode a length delimiter to the buffer. This is a technical option, not really intended for end user.
-    EncodeLengthDelimiter { buffer: Vec<u8> },
 
     /// Edit a file in a new edit pane
     Edit(FileToOpen),
@@ -156,31 +152,9 @@ impl ActionList {
 
                 ActionList::CloseTerminalPane { id }
             }
-            _ if deserialize_action(
-                &action,
-                ActionList::DecodeLengthDelimiter {
-                    buffer: Default::default(),
-                },
-            ) =>
-            {
-                ActionList::DecodeLengthDelimiter {
-                    buffer: action_arguments.collect::<String>().into_bytes(),
-                }
-            }
             _ if deserialize_action(&action, ActionList::Detach) => ActionList::Detach,
             _ if deserialize_action(&action, ActionList::EditScrollback) => {
                 ActionList::EditScrollback
-            }
-            _ if deserialize_action(
-                &action,
-                ActionList::EncodeLengthDelimiter {
-                    buffer: Default::default(),
-                },
-            ) =>
-            {
-                ActionList::EncodeLengthDelimiter {
-                    buffer: action_arguments.collect::<String>().into_bytes(),
-                }
             }
 
             _ if deserialize_action(&action, ActionList::Edit(Default::default())) => {
@@ -321,8 +295,9 @@ impl Action {
     pub(crate) fn selection_up(&mut self) {
         self.action = match self.action {
             ActionList::Help { mut selection } => {
-                selection.row = selection.row - 1;
-                if selection.row < 0 {
+                if selection.row != 0 {
+                    selection.row = selection.row - 1;
+                } else {
                     selection.row = selection.max - 1
                 }
                 ActionList::Help { selection }

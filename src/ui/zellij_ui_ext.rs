@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use zellij_tile::prelude::ui_components::*;
 
 pub fn format_text(text: Text) -> String {
@@ -47,24 +49,67 @@ pub fn format_ribbon_with_coordinates(
     )
 }
 
-pub fn format_ribbon_line(
-    texts: &[Text],
+pub fn format_ribbon_line<I>(ribbons: I) -> String
+where
+    I: IntoIterator,
+    I::Item: Borrow<Text>,
+{
+    ribbons
+        .into_iter()
+        .map(|r| format_ribbon(r.borrow()))
+        .collect()
+}
+
+pub fn format_ribbon_line_with_coordinates<I>(
+    ribbons: I,
+    x: usize,
     y: usize,
     width: Option<usize>,
     height: Option<usize>,
-) -> String {
-    let x = 0;
-
-    let (first, rest) = match texts.split_first() {
-        Some(t) => t,
-        None => return String::new(),
+) -> String
+where
+    I: IntoIterator,
+    I::Item: Borrow<Text>,
+{
+    let mut ribbons = ribbons.into_iter();
+    let Some(first) = ribbons.next() else {
+        return String::new();
     };
 
-    format!(
-        "{}{}\u{1b}[48;5;{}m\u{1b}[0K",
-        format_ribbon_with_coordinates(first, x, y, width, height),
-        rest.iter().map(format_ribbon).collect::<String>(),
-        crate::ui::BLACK // TODO: use same background as ribbon // FIXME: may not be generalizable as I did not manage to do the front of the line too
+    let mut result = format_ribbon_with_coordinates(first.borrow(), x, y, width, height);
+    result.push_str(&format_ribbon_line(ribbons));
+    result
+}
+
+pub fn format_background_until_line_end(s: String, color: u8) -> String {
+    format!("{}\u{1b}[48;5;{}m\u{1b}[0K", s, color)
+}
+
+pub fn format_ribbon_full_line<I>(ribbons: I) -> String
+where
+    I: IntoIterator,
+    I::Item: Borrow<Text>,
+{
+    format_background_until_line_end(
+        format_ribbon_line(ribbons),
+        0, // TODO: use same background as ribbon // FIXME: may not be generalizable as I did not manage to do the front of the line too
+    )
+}
+
+pub fn format_ribbon_full_line_with_coordinates<I>(
+    ribbons: I,
+    x: usize,
+    y: usize,
+    width: Option<usize>,
+    height: Option<usize>,
+) -> String
+where
+    I: IntoIterator,
+    I::Item: Borrow<Text>,
+{
+    format_background_until_line_end(
+        format_ribbon_line_with_coordinates(ribbons, x, y, width, height),
+        super::BLACK, // TODO: use same background as ribbon // FIXME: may not be generalizable as I did not manage to do the front of the line too
     )
 }
 

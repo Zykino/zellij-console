@@ -21,6 +21,7 @@ struct State {
     should_open_floating: bool,
     search_filter: EnvironmentFrom,
     display: DisplaySize,
+    mode_info: ModeInfo,
     // last_pane: PaneManifest,
     // last_tab: TabInfo, // TODO: useless?
 }
@@ -34,9 +35,11 @@ impl ZellijPlugin for State {
             PermissionType::RunCommands,
             PermissionType::OpenFiles,
             PermissionType::OpenTerminalsOrPlugins,
+            PermissionType::ReadApplicationState,
         ]);
         subscribe(&[
             /*EventType::PaneUpdate, EventType::TabUpdate,*/ EventType::Key,
+            EventType::ModeUpdate,
         ]);
 
         // TODO: This may change as I’m not convinced the `configuration`’s API is good for this
@@ -50,12 +53,10 @@ impl ZellijPlugin for State {
         let mut should_render = false;
 
         match event {
-            // Event::ModeUpdate(mode_info) => {
-            //     let mode = format!("{:?}", mode_info.mode);
-            //     let count = self.mode_log.entry(mode).or_insert(0);
-            //     *count += 1;
-            //     should_render = true;
-            // }
+            Event::ModeUpdate(mode_info) => {
+                self.mode_info = mode_info;
+                should_render = true;
+            }
             // Event::PaneUpdate(pane_info) => {
             //     self.last_pane = pane_info;
             //     // should_render = true;
@@ -145,9 +146,6 @@ impl State {
                 Some(id) => close_terminal_pane(id),
                 None => done = false,
             },
-            ActionList::DecodeLengthDelimiter { buffer } => {
-                let _ = decode_length_delimiter(buffer.as_slice());
-            }
             ActionList::Detach => {
                 detach();
             }
@@ -155,9 +153,6 @@ impl State {
                 // TODO: Edit scrollback applies on the focused pane, focus to the previous one before clearing the screen/scrollback
                 // focus_previous_pane();
                 edit_scrollback();
-            }
-            ActionList::EncodeLengthDelimiter { mut buffer } => {
-                let _ = encode_length_delimiter(buffer.len(), &mut buffer);
             }
 
             ActionList::Edit(FileToOpen {

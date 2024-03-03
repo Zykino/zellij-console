@@ -1,31 +1,23 @@
 use std::fmt::{Display, Formatter};
 use strum::{EnumMessage, EnumProperty, IntoEnumIterator};
 
-use zellij_tile::prelude::{ui_components::*, CommandToRun, FileToOpen};
+use zellij_tile::prelude::{ui_components::*, CommandToRun, FileToOpen, Palette};
 mod zellij_ui_ext;
 use zellij_ui_ext::*;
 
 use crate::action::ActionList;
 use crate::{EnvironmentFrom, State};
 
-// TODO: use the user’s theme, when available in Zellij
-pub const CYAN: u8 = 51;
-pub const GRAY_LIGHT: u8 = 238;
-pub const GRAY_DARK: u8 = 245;
 pub const WHITE: u8 = 15;
 pub const BLACK: u8 = 16;
-// pub const RED: u8 = 124;
-// pub const GREEN: u8 = 154;
-pub const ORANGE: u8 = 166;
 
-const REQUIRED_COLOR: u8 = GRAY_DARK;
-const OPTIONAL_COLOR: u8 = GRAY_LIGHT;
-const UNSETTABLE_COLOR: u8 = ORANGE;
+const REQUIRED_COLOR: usize = 2;
+const OPTIONAL_COLOR: usize = 3;
+const UNSETTABLE_COLOR: usize = 4;
 
 impl Display for ActionList {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        // TODO: remove the clone? Only needed because `EncodeLengthDelimiter` need a mutable access
-        let text = match self.clone() {
+        let text = match self {
             Self::Unknown => {
                 let text = Text::new(r#"Type a command or "help" if you need a list of commands"#)
                     .color_range(1, 19..23);
@@ -81,54 +73,41 @@ impl Display for ActionList {
             Self::CloseFocusTab => String::from("CloseFocusTab "),
             Self::ClosePluginPane { id } => format!(
                 "ClosePluginPane\n{} {}",
-                styled_text_foreground(REQUIRED_COLOR, &bold("PATH:")),
+                format_text(Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
                 id.unwrap_or_default() // TODO: not default when unset…
             ),
             Self::CloseTerminalPane { id } => format!(
                 "CloseTerminalPane\n{} {}",
-                styled_text_foreground(REQUIRED_COLOR, &bold("PATH:")),
+                format_text(Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
                 id.unwrap_or_default() // TODO: not default when unset…
-            ),
-            Self::DecodeLengthDelimiter { buffer } => format!(
-                "DecodeLengthDelimiter\n{} {:?}:{:?}",
-                styled_text_foreground(REQUIRED_COLOR, &bold("PATH:")),
-                zellij_tile::shim::decode_length_delimiter(buffer.as_slice()),
-                buffer
             ),
             Self::Detach => String::from("Detach"),
             Self::EditScrollback => String::from("EditScrollback"),
-            Self::EncodeLengthDelimiter { mut buffer } => format!(
-                "EncodeLengthDelimiter\n{} {:?}:{:?}",
-                styled_text_foreground(REQUIRED_COLOR, &bold("PATH:")),
-                zellij_tile::shim::encode_length_delimiter(buffer.len(), &mut buffer),
-                buffer
-            ),
-
             Self::Edit(FileToOpen {
                 path,
                 line_number: line,
                 cwd,
             }) => format!(
                 "Edit\n{} {:?}\n{} {}\n{} {:?}",
-                styled_text_foreground(OPTIONAL_COLOR, &bold("PATH:")),
+                format_text(Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
                 path,
-                styled_text_foreground(OPTIONAL_COLOR, &bold("LINE:")),
+                format_text(Text::new("LINE:").color_range(REQUIRED_COLOR, 0..4)),
                 line.unwrap_or_default(),
-                styled_text_foreground(UNSETTABLE_COLOR, &bold("DIRECTORY:")),
+                format_text(Text::new("DIRECTORY:").color_range(UNSETTABLE_COLOR, 0..4)),
                 cwd.clone().unwrap_or_default(),
             ),
             Self::NewPane { path } => format!(
                 "New pane\n{} {}",
-                styled_text_foreground(REQUIRED_COLOR, &bold("PATH:")),
+                format_text(Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
                 path
             ),
             Self::Run(CommandToRun { path, args, cwd }) => format!(
                 "Run\n{} {:?}\n{} {:?}\n{} {:?}",
-                styled_text_foreground(REQUIRED_COLOR, &bold("COMMAND:")),
+                format_text(Text::new("COMMAND:").color_range(REQUIRED_COLOR, 0..7)),
                 path,
-                styled_text_foreground(OPTIONAL_COLOR, &bold("ARGUMENTS:")),
+                format_text(Text::new("ARGUMENTS:").color_range(OPTIONAL_COLOR, 0..9)),
                 args,
-                styled_text_foreground(OPTIONAL_COLOR, &bold("DIRECTORY:")),
+                format_text(Text::new("DIRECTORY:").color_range(OPTIONAL_COLOR, 0..9)),
                 cwd.clone().unwrap_or_default(),
             ),
         };
@@ -138,7 +117,7 @@ impl Display for ActionList {
             _ => {
                 format!(
                     "{} {}",
-                    styled_text_foreground(REQUIRED_COLOR, &bold("ACTION:")),
+                    format_text(Text::new("ACTION:").color_range(1, 0..6)),
                     text
                 )
             }
@@ -150,31 +129,43 @@ impl Display for ActionList {
 
 impl Display for State {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.render_action_line())?;
-        write!(f, "{}", self.render_controls_line())?;
+        // Use the user’s theme
+        let theme = self.mode_info.style.colors;
+        write!(f, "{}", self.render_action_line(theme))?;
+        // TODO: Only print the control line when its options are usefull… or remove it entirely to integrate the options in the command actions
+        write!(f, "{}", self.render_controls_line(theme))?;
         Ok(())
     }
 }
 
 impl State {
-    pub fn render_action_line(&self) -> String {
+    pub fn render_action_line(&self, _theme: Palette) -> String {
+        // TODO: I don’t think this is a good setup: the 2 methods do not coexist yet, so… I only keep it for reference while waiting for the new theme spec
+        // let c = match theme.cyan {
+        //     zellij_tile::prelude::PaletteColor::Rgb(_) => 1,
+        //     zellij_tile::prelude::PaletteColor::EightBit(c) => {
+        //         print!("EightBit: {}{:?}{:?}", c, theme.source, theme.theme_hue);
+        //         c as usize
+        //     }
+        // };
         format!(
             "{} {}{}\n{}\n",
-            styled_text_foreground(CYAN, &bold("PROMPT:")),
+            format_text(Text::new("PROMPT:").color_range(1, 0..6)),
             self.action.as_str(),
             styled_text_background(WHITE, " "), // "Cursor" representation
             self.action.action(),
         )
     }
 
-    pub fn render_controls_line(&self) -> String {
+    pub fn render_controls_line(&self, _theme: Palette) -> String {
         // let has_results = true; // !self.displayed_search_results.1.is_empty();
         let tiled_floating_control =
             self.new_floating_control("Ctrl + f", self.should_open_floating);
         let names_contents_control = self.new_filter_control("Ctrl + e", &self.search_filter);
 
-        format_ribbon_line(
+        format_ribbon_full_line_with_coordinates(
             &[tiled_floating_control, names_contents_control],
+            0,
             self.display.rows,
             None,
             None,
