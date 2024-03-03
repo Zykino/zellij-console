@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use strum::{EnumMessage, EnumProperty, IntoEnumIterator};
+use strum::EnumMessage;
 
 use zellij_tile::prelude::{ui_components::*, CommandToRun, FileToOpen, Palette};
 mod zellij_ui_ext;
@@ -35,21 +35,21 @@ impl Display for ActionList {
 
                         let mut result = Vec::with_capacity(2);
                         result.push(
-                            NestedListItem::new(&format!(
+                            NestedListItem::new(format!(
                                 "{}:\t{}",
                                 name,
-                                variant.get_documentation().expect(&format!(
+                                variant.get_documentation().unwrap_or_else(|| panic!(
                                     "{variant:?} should have a line of documentation"
                                 ))
                             ))
                             .color_range(1, 0..name.len()),
                         );
 
-                        if i == selection.row as usize {
+                        if i == selection.row {
                             // TODO: Maybe only show the other ways of writing the command when selected when the line is selected
                             // TODO: When selected, "Enter" should use that commands to replace the current command
                             result.push(
-                                NestedListItem::new(&format!(
+                                NestedListItem::new(format!(
                                     "{}:\t{}",
                                     shortcut,
                                     variant.get_serializations().join(", ")
@@ -164,7 +164,7 @@ impl State {
         let names_contents_control = self.new_filter_control("Ctrl + e", &self.search_filter);
 
         format_ribbon_full_line_with_coordinates(
-            &[tiled_floating_control, names_contents_control],
+            [tiled_floating_control, names_contents_control],
             0,
             self.display.rows,
             None,

@@ -43,10 +43,8 @@ impl ZellijPlugin for State {
         ]);
 
         // TODO: This may change as I’m not convinced the `configuration`’s API is good for this
-        self.action.set(&format!(
-            "{}",
-            configuration.get("command").unwrap_or(&Default::default())
-        ));
+        self.action
+            .set(configuration.get("command").unwrap_or(&Default::default()));
     }
 
     fn update(&mut self, event: Event) -> bool {
@@ -206,9 +204,9 @@ impl State {
                 let variant = ActionList::documentation()
                     .nth(selection.row)
                     .expect("Selection {selection:?} is bounded to the iter size");
-                let s = variant.get_serializations().first().expect(&format!(
-                    "{variant:?} is garanteed to have a serialization string"
-                ));
+                let s = variant.get_serializations().first().unwrap_or_else(|| {
+                    panic!("{variant:?} is garanteed to have a serialization string")
+                });
 
                 self.action.set(s);
             }
@@ -221,23 +219,18 @@ impl State {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 pub enum EnvironmentFrom {
+    #[default]
     ZellijSession,
     DefaultShell,
 }
 
 impl EnvironmentFrom {
     pub fn progress(&mut self) {
-        match &self {
-            &EnvironmentFrom::ZellijSession => *self = EnvironmentFrom::DefaultShell,
-            &EnvironmentFrom::DefaultShell => *self = EnvironmentFrom::ZellijSession,
+        match self {
+            EnvironmentFrom::ZellijSession => *self = EnvironmentFrom::DefaultShell,
+            EnvironmentFrom::DefaultShell => *self = EnvironmentFrom::ZellijSession,
         }
-    }
-}
-
-impl Default for EnvironmentFrom {
-    fn default() -> Self {
-        EnvironmentFrom::ZellijSession
     }
 }

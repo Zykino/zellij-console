@@ -1,4 +1,4 @@
-use std::{collections::binary_heap::Iter, iter::FilterMap, path::PathBuf};
+use std::path::PathBuf;
 use strum::{EnumMessage, EnumProperty, IntoEnumIterator};
 use strum_macros::{EnumIter, EnumMessage, EnumProperty};
 
@@ -159,13 +159,9 @@ impl ActionList {
 
             _ if deserialize_action(&action, ActionList::Edit(Default::default())) => {
                 let last = action_arguments.next_back();
-                let line_number = last
-                    .clone()
-                    .unwrap_or(String::new())
-                    .parse::<usize>()
-                    .map_or(None, |v| Some(v));
+                let line_number = last.clone().unwrap_or(String::new()).parse::<usize>().ok();
                 let mut path = action_arguments.collect::<Vec<String>>().join(" ");
-                if line_number == None {
+                if line_number.is_none() {
                     if !path.is_empty() {
                         path.push(' ');
                     }
@@ -296,7 +292,7 @@ impl Action {
         self.action = match self.action {
             ActionList::Help { mut selection } => {
                 if selection.row != 0 {
-                    selection.row = selection.row - 1;
+                    selection.row -= 1;
                 } else {
                     selection.row = selection.max - 1
                 }
