@@ -165,14 +165,14 @@ impl State {
                 };
 
                 if self.should_open_floating {
-                    open_file_floating(file);
+                    open_file_floating(file, None); // TODO: Make it possible to provide the coordinates
                 } else {
                     open_file(file);
                 }
             }
             ActionList::NewPane { path } => {
                 if self.should_open_floating {
-                    open_terminal_floating(path);
+                    open_terminal_floating(path, None); // TODO: Make it possible to provide the coordinates
                 } else {
                     open_terminal(path);
                 }
@@ -193,7 +193,7 @@ impl State {
                 let cmd = CommandToRun { path, args, cwd };
 
                 if self.should_open_floating {
-                    open_command_pane_floating(cmd);
+                    open_command_pane_floating(cmd, None); // TODO: Make it possible to provide the coordinates
                 } else {
                     open_command_pane(cmd);
                 }

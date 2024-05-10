@@ -2,8 +2,6 @@ use std::fmt::{Display, Formatter};
 use strum::EnumMessage;
 
 use zellij_tile::prelude::{ui_components::*, CommandToRun, FileToOpen, Palette};
-mod zellij_ui_ext;
-use zellij_ui_ext::*;
 
 use crate::action::ActionList;
 use crate::{EnvironmentFrom, State};
@@ -21,10 +19,10 @@ impl Display for ActionList {
             Self::Unknown => {
                 let text = Text::new(r#"Type a command or "help" if you need a list of commands"#)
                     .color_range(1, 19..23);
-                format_text(text)
+                serialize_text(&text)
             }
             Self::Help { selection } => {
-                let text = ActionList::documentation()
+                let text: Vec<_> = ActionList::documentation()
                     .enumerate()
                     .flat_map(|(i, variant)| -> Vec<NestedListItem> {
                         let name = variant
@@ -65,7 +63,7 @@ impl Display for ActionList {
                     })
                     .collect();
 
-                format_nested_list(text)
+                serialize_nested_list(&text)
             }
 
             Self::ClearScreen => String::from("ClearScreen"),
@@ -73,12 +71,12 @@ impl Display for ActionList {
             Self::CloseFocusTab => String::from("CloseFocusTab "),
             Self::ClosePluginPane { id } => format!(
                 "ClosePluginPane\n{} {}",
-                format_text(Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
+                serialize_text(&Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
                 id.unwrap_or_default() // TODO: not default when unset…
             ),
             Self::CloseTerminalPane { id } => format!(
                 "CloseTerminalPane\n{} {}",
-                format_text(Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
+                serialize_text(&Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
                 id.unwrap_or_default() // TODO: not default when unset…
             ),
             Self::Detach => String::from("Detach"),
@@ -89,25 +87,25 @@ impl Display for ActionList {
                 cwd,
             }) => format!(
                 "Edit\n{} {:?}\n{} {}\n{} {:?}",
-                format_text(Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
+                serialize_text(&Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
                 path,
-                format_text(Text::new("LINE:").color_range(REQUIRED_COLOR, 0..4)),
+                serialize_text(&Text::new("LINE:").color_range(REQUIRED_COLOR, 0..4)),
                 line.unwrap_or_default(),
-                format_text(Text::new("DIRECTORY:").color_range(UNSETTABLE_COLOR, 0..4)),
+                serialize_text(&Text::new("DIRECTORY:").color_range(UNSETTABLE_COLOR, 0..4)),
                 cwd.clone().unwrap_or_default(),
             ),
             Self::NewPane { path } => format!(
                 "New pane\n{} {}",
-                format_text(Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
+                serialize_text(&Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
                 path
             ),
             Self::Run(CommandToRun { path, args, cwd }) => format!(
                 "Run\n{} {:?}\n{} {:?}\n{} {:?}",
-                format_text(Text::new("COMMAND:").color_range(REQUIRED_COLOR, 0..7)),
+                serialize_text(&Text::new("COMMAND:").color_range(REQUIRED_COLOR, 0..7)),
                 path,
-                format_text(Text::new("ARGUMENTS:").color_range(OPTIONAL_COLOR, 0..9)),
+                serialize_text(&Text::new("ARGUMENTS:").color_range(OPTIONAL_COLOR, 0..9)),
                 args,
-                format_text(Text::new("DIRECTORY:").color_range(OPTIONAL_COLOR, 0..9)),
+                serialize_text(&Text::new("DIRECTORY:").color_range(OPTIONAL_COLOR, 0..9)),
                 cwd.clone().unwrap_or_default(),
             ),
         };
@@ -117,7 +115,7 @@ impl Display for ActionList {
             _ => {
                 format!(
                     "{} {}",
-                    format_text(Text::new("ACTION:").color_range(1, 0..6)),
+                    serialize_text(&Text::new("ACTION:").color_range(1, 0..6)),
                     text
                 )
             }
@@ -150,7 +148,7 @@ impl State {
         // };
         format!(
             "{} {}{}\n{}\n",
-            format_text(Text::new("PROMPT:").color_range(1, 0..6)),
+            serialize_text(&Text::new("PROMPT:").color_range(1, 0..6)),
             self.action.as_str(),
             styled_text_background(WHITE, " "), // "Cursor" representation
             self.action.action(),
@@ -163,7 +161,7 @@ impl State {
             self.new_floating_control("Ctrl + f", self.should_open_floating);
         let names_contents_control = self.new_filter_control("Ctrl + e", &self.search_filter);
 
-        format_ribbon_full_line_with_coordinates(
+        serialize_ribbon_line_with_coordinates(
             [tiled_floating_control, names_contents_control],
             0,
             self.display.rows,
