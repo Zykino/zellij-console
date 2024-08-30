@@ -129,19 +129,19 @@ impl Display for ActionList {
             Self::DetachEveryone => String::from("DetachEveryone"),
             Self::DetachMe => String::from("DetachMe"),
             // Self::EditScrollback => String::from("EditScrollback"),
-            // Self::Edit(FileToOpen {
-            //     path,
-            //     line_number: line,
-            //     cwd,
-            // }) => format!(
-            //     "Edit\n{} {:?}\n{} {}\n{} {:?}",
-            //     serialize_text(&Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
-            //     path,
-            //     serialize_text(&Text::new("LINE:").color_range(REQUIRED_COLOR, 0..4)),
-            //     line.unwrap_or_default(),
-            //     serialize_text(&Text::new("DIRECTORY:").color_range(UNSETTABLE_COLOR, 0..4)),
-            //     cwd.clone().unwrap_or_default(),
-            // ),
+            Self::Edit(FileToOpen {
+                path,
+                line_number: line,
+                cwd,
+            }) => format!(
+                "Edit\n{} {:?}\n{} {}\n{} {:?}",
+                serialize_text(&Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
+                path,
+                serialize_text(&Text::new("LINE:").color_range(REQUIRED_COLOR, 0..4)),
+                line.unwrap_or_default(),
+                serialize_text(&Text::new("DIRECTORY:").color_range(UNSETTABLE_COLOR, 0..4)),
+                cwd.clone().unwrap_or_default(),
+            ),
             // Self::NewPane { path } => format!(
             //     "New pane\n{} {}",
             //     serialize_text(&Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),

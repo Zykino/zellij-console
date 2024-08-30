@@ -114,6 +114,9 @@ impl ZellijPlugin for State {
             PipeSource::Keybind => todo!(),
         }
 
+        self.start_action();
+
+        close_self();
         should_render
     }
 
@@ -199,24 +202,23 @@ impl State {
             //     // focus_previous_pane();
             //     edit_scrollback();
             // }
+            ActionList::Edit(FileToOpen {
+                path,
+                line_number,
+                cwd,
+            }) => {
+                let file = FileToOpen {
+                    path: path.to_owned(),
+                    line_number: line_number.to_owned(),
+                    cwd: cwd.to_owned(),
+                };
 
-            // ActionList::Edit(FileToOpen {
-            //     path,
-            //     line_number,
-            //     cwd,
-            // }) => {
-            //     let file = FileToOpen {
-            //         path: path.to_owned(),
-            //         line_number: line_number.to_owned(),
-            //         cwd: cwd.to_owned(),
-            //     };
-
-            //     if self.should_open_floating {
-            //         open_file_floating(file, None); // TODO: Make it possible to provide the coordinates
-            //     } else {
-            //         open_file(file);
-            //     }
-            // }
+                if self.should_open_floating {
+                    open_file_floating(file, None); // TODO: Make it possible to provide the coordinates
+                } else {
+                    open_file(file);
+                }
+            }
             // ActionList::NewPane { path } => {
             //     if self.should_open_floating {
             //         open_terminal_floating(path, None); // TODO: Make it possible to provide the coordinates

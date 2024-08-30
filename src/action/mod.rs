@@ -30,7 +30,7 @@ pub(crate) enum Interface {
 // 2) "Pipe": Only available on the "pipe" interface
 // 3) "All": Available "all" the interfaces
 // TODO: Is it possible to not repeat the `serialize` with all "-" and "_" combinations?
-#[derive(Debug, Default, Clone, PartialEq, EnumIter, EnumMessage, EnumProperty)]
+#[derive(Debug, Default, Clone, EnumIter, EnumMessage, EnumProperty)]
 pub(crate) enum ActionList {
     /*
         Technical actions
@@ -152,9 +152,11 @@ pub(crate) enum ActionList {
     DetachMe,
     // /// Edit a pane scrollback
     // EditScrollback,
-
-    // /// Edit a file in a new edit pane
-    // Edit(FileToOpen),
+    /// Edit a file in a new edit pane
+    #[strum(
+        props(Interface = "Pane"), // The cli does not know who wrote the command or who pressed `Enter` --> The edit will be done by every users
+    )]
+    Edit(FileToOpen),
     // /// Open a new pane in the current tab
     // #[strum(
     //     serialize = "NewPane",
@@ -224,24 +226,23 @@ impl ActionList {
             // _ if deserialize_action(&action, ActionList::EditScrollback) => {
             //     ActionList::EditScrollback
             // }
+            _ if deserialize_action(&action, ActionList::Edit(Default::default())) => {
+                let last = action_arguments.next_back();
+                let line_number = last.clone().unwrap_or(String::new()).parse::<usize>().ok();
+                let mut path = action_arguments.collect::<Vec<String>>().join(" ");
+                if line_number.is_none() {
+                    if !path.is_empty() {
+                        path.push(' ');
+                    }
+                    path.push_str(&last.unwrap_or_default())
+                }
 
-            // _ if deserialize_action(&action, ActionList::Edit(Default::default())) => {
-            //     let last = action_arguments.next_back();
-            //     let line_number = last.clone().unwrap_or(String::new()).parse::<usize>().ok();
-            //     let mut path = action_arguments.collect::<Vec<String>>().join(" ");
-            //     if line_number.is_none() {
-            //         if !path.is_empty() {
-            //             path.push(' ');
-            //         }
-            //         path.push_str(&last.unwrap_or_default())
-            //     }
-
-            //     ActionList::Edit(FileToOpen {
-            //         path: path.into(),
-            //         line_number,
-            //         cwd: None, // TODO: get the cwd
-            //     })
-            // }
+                ActionList::Edit(FileToOpen {
+                    path: path.into(),
+                    line_number,
+                    cwd: None, // TODO: get the cwd
+                })
+            }
             // _ if deserialize_action(
             //     &action,
             //     ActionList::NewPane {
@@ -392,7 +393,7 @@ impl Action {
         // TODO: maybe don’t reparse all each time?
         // if charactere.is_whitespace() {
         let a = ActionList::parse(self.command.clone(), &interface);
-        if a == ActionList::Unknown {
+        if let ActionList::Unknown = a {
             self.action = a;
             return;
         }
