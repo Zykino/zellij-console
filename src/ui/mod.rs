@@ -1,13 +1,13 @@
-use std::fmt::{Display, Formatter};
-use strum::EnumMessage;
+use std::fmt::{Debug, Display, Formatter};
+use strum::{EnumMessage, EnumProperty};
 
 use zellij_tile::prelude::{ui_components::*, CommandToRun, FileToOpen, Palette};
 
-use crate::action::ActionList;
+use crate::action::{ActionList, Interface};
 use crate::{EnvironmentFrom, State};
 
-pub const WHITE: u8 = 15;
-pub const BLACK: u8 = 16;
+const WHITE: u8 = 15;
+const BLACK: u8 = 16;
 
 const REQUIRED_COLOR: usize = 2;
 const OPTIONAL_COLOR: usize = 3;
@@ -21,39 +21,86 @@ impl Display for ActionList {
                     .color_range(1, 19..23);
                 serialize_text(&text)
             }
-            Self::Help { selection } => {
-                let text: Vec<_> = ActionList::documentation()
+            Self::Unavailable {
+                action,
+                calling_interface,
+            } => {
+                // TODO: implement Display for interface? --> This would help get its `len()`
+                let command = action
+                    .get_serializations()
+                    .first()
+                    .expect("At least one serialization is guaranteed");
+                let available_interface = action.get_usable_interface().expect("Command {action:?} stored in `ActionList::Unavailable`, but cannot be used on any interface");
+
+                let indice_after_command = 5 + command.len();
+                let indice_before_current_interface = 59 + indice_after_command;
+                let indice_after_current_interface = indice_before_current_interface + 4; // 4 because interfaces different from "all" are 4 char long ("Pane" & "Pipe")
+                let indice_before_available_interfaces = indice_after_current_interface + 38;
+                let indice_after_available_interfaces = indice_before_available_interfaces + 4; // 4 because interfaces different from "all" are 4 char long ("Pane" & "Pipe")
+
+                let text = Text::new(format!(
+                    "The `{command}` command is not available through the current interface (`{calling_interface:?}`). It should makes sens only on the `{available_interface}` interface.",
+                ))
+                    .color_range(0,..)
+                    .color_range(1, 5..indice_after_command)
+                    .color_range(1, indice_before_current_interface..indice_after_current_interface)
+                    .color_range(1, indice_before_available_interfaces..indice_after_available_interfaces)
+                    ;
+                serialize_text(&text)
+            }
+            Self::HelpAll { selection }
+            | Self::HelpPane { selection }
+            | Self::HelpPipe { selection } => {
+                let docs: Box<dyn Iterator<Item = ActionList>> = match self {
+                    Self::HelpAll { .. } => Box::new(ActionList::filter_any()),
+                    Self::HelpPane { .. } => Box::new(ActionList::filter_pane()),
+                    Self::HelpPipe { .. } => Box::new(ActionList::filter_pipe()),
+                    _ => panic!("Should be one of the help modes"),
+                };
+                let text: Vec<_> = docs
                     .enumerate()
                     .flat_map(|(i, variant)| -> Vec<NestedListItem> {
                         let name = variant
                             .get_serializations()
                             .first()
                             .expect("At least one serialization is garanteed");
-                        let shortcut = "Shortcut variants";
+                        let shortcut_msg = "Shortcut variations";
+                        let interface_msg = "Interface restriction";
 
-                        let mut result = Vec::with_capacity(2);
+                        let mut result = Vec::with_capacity(3);
                         result.push(
                             NestedListItem::new(format!(
                                 "{}:\t{}",
                                 name,
-                                variant.get_documentation().unwrap_or_else(|| panic!(
-                                    "{variant:?} should have a line of documentation"
-                                ))
+                                variant
+                                    .get_documentation()
+                                    .expect("{variant:?} should have a line of documentation")
                             ))
                             .color_range(1, 0..name.len()),
                         );
 
+                        // TODO: || Interface::Pipe { // --> Expand all when asking for Help from the CLI.
                         if i == selection.row {
-                            // TODO: Maybe only show the other ways of writing the command when selected when the line is selected
-                            // TODO: When selected, "Enter" should use that commands to replace the current command
+                            if !variant.usable_in_all() {
+                                result.push(
+                                    NestedListItem::new(format!(
+                                        "{}:\t{}",
+                                        interface_msg,
+                                        variant.get_usable_interface().expect("Interface restriction should be set for command we show help on")
+                                    ))
+                                        .indent(1)
+                                        .color_range(2, 0..interface_msg.len()),
+                                );
+                            }
+
                             result.push(
                                 NestedListItem::new(format!(
                                     "{}:\t{}",
-                                    shortcut,
+                                    shortcut_msg,
                                     variant.get_serializations().join(", ")
                                 ))
-                                .indent(1)
-                                .color_range(2, 0..shortcut.len()),
+                                    .indent(1)
+                                    .color_range(2, 0..shortcut_msg.len()),
                             );
 
                             result.iter().map(|item| item.clone().selected()).collect()
@@ -66,52 +113,57 @@ impl Display for ActionList {
                 serialize_nested_list(&text)
             }
 
-            Self::ClearScreen => String::from("ClearScreen"),
-            Self::CloseFocus => String::from("CloseFocus"),
-            Self::CloseFocusTab => String::from("CloseFocusTab "),
-            Self::ClosePluginPane { id } => format!(
-                "ClosePluginPane\n{} {}",
-                serialize_text(&Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
-                id.unwrap_or_default() // TODO: not default when unset…
-            ),
-            Self::CloseTerminalPane { id } => format!(
-                "CloseTerminalPane\n{} {}",
-                serialize_text(&Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
-                id.unwrap_or_default() // TODO: not default when unset…
-            ),
-            Self::Detach => String::from("Detach"),
-            Self::EditScrollback => String::from("EditScrollback"),
-            Self::Edit(FileToOpen {
-                path,
-                line_number: line,
-                cwd,
-            }) => format!(
-                "Edit\n{} {:?}\n{} {}\n{} {:?}",
-                serialize_text(&Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
-                path,
-                serialize_text(&Text::new("LINE:").color_range(REQUIRED_COLOR, 0..4)),
-                line.unwrap_or_default(),
-                serialize_text(&Text::new("DIRECTORY:").color_range(UNSETTABLE_COLOR, 0..4)),
-                cwd.clone().unwrap_or_default(),
-            ),
-            Self::NewPane { path } => format!(
-                "New pane\n{} {}",
-                serialize_text(&Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
-                path
-            ),
-            Self::Run(CommandToRun { path, args, cwd }) => format!(
-                "Run\n{} {:?}\n{} {:?}\n{} {:?}",
-                serialize_text(&Text::new("COMMAND:").color_range(REQUIRED_COLOR, 0..7)),
-                path,
-                serialize_text(&Text::new("ARGUMENTS:").color_range(OPTIONAL_COLOR, 0..9)),
-                args,
-                serialize_text(&Text::new("DIRECTORY:").color_range(OPTIONAL_COLOR, 0..9)),
-                cwd.clone().unwrap_or_default(),
-            ),
+            // Self::ClearScreen => String::from("ClearScreen"),
+            // Self::CloseFocus => String::from("CloseFocus"),
+            // Self::CloseFocusTab => String::from("CloseFocusTab "),
+            // Self::ClosePluginPane { id } => format!(
+            //     "ClosePluginPane\n{} {}",
+            //     serialize_text(&Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
+            //     id.unwrap_or_default() // TODO: not default when unset…
+            // ),
+            // Self::CloseTerminalPane { id } => format!(
+            //     "CloseTerminalPane\n{} {}",
+            //     serialize_text(&Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
+            //     id.unwrap_or_default() // TODO: not default when unset…
+            // ),
+            Self::DetachEveryone => String::from("DetachEveryone"),
+            Self::DetachMe => String::from("DetachMe"),
+            // Self::EditScrollback => String::from("EditScrollback"),
+            // Self::Edit(FileToOpen {
+            //     path,
+            //     line_number: line,
+            //     cwd,
+            // }) => format!(
+            //     "Edit\n{} {:?}\n{} {}\n{} {:?}",
+            //     serialize_text(&Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
+            //     path,
+            //     serialize_text(&Text::new("LINE:").color_range(REQUIRED_COLOR, 0..4)),
+            //     line.unwrap_or_default(),
+            //     serialize_text(&Text::new("DIRECTORY:").color_range(UNSETTABLE_COLOR, 0..4)),
+            //     cwd.clone().unwrap_or_default(),
+            // ),
+            // Self::NewPane { path } => format!(
+            //     "New pane\n{} {}",
+            //     serialize_text(&Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
+            //     path
+            // ),
+            // Self::Run(CommandToRun { path, args, cwd }) => format!(
+            //     "Run\n{} {:?}\n{} {:?}\n{} {:?}",
+            //     serialize_text(&Text::new("COMMAND:").color_range(REQUIRED_COLOR, 0..7)),
+            //     path,
+            //     serialize_text(&Text::new("ARGUMENTS:").color_range(OPTIONAL_COLOR, 0..9)),
+            //     args,
+            //     serialize_text(&Text::new("DIRECTORY:").color_range(OPTIONAL_COLOR, 0..9)),
+            //     cwd.clone().unwrap_or_default(),
+            // ),
         };
 
         let text = match self {
-            Self::Unknown | Self::Help { .. } => text,
+            Self::Unknown
+            | Self::Unavailable { .. }
+            | Self::HelpAll { .. }
+            | Self::HelpPane { .. }
+            | Self::HelpPipe { .. } => text,
             _ => {
                 format!(
                     "{} {}",
