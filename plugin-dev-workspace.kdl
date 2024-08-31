@@ -15,7 +15,7 @@ layout {
             }
             pane stacked=true {
                 pane {
-                    plugin location="file:/mnt/Data/Code/Target/Cargo/wasm32-wasi/debug/zellij-console.wasm"
+                    plugin location="zc"
                 }
                 pane command="gitui" {
                      start_suspended true
