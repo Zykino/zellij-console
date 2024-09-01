@@ -38,15 +38,27 @@ impl Display for ActionList {
                 let indice_before_available_interfaces = indice_after_current_interface + 38;
                 let indice_after_available_interfaces = indice_before_available_interfaces + 4; // 4 because interfaces different from "all" are 4 char long ("Pane" & "Pipe")
 
-                let text = Text::new(format!(
+                let mut texts = Vec::with_capacity(2);
+                texts.push(Text::new(format!(
                     "The `{command}` command is not available through the current interface (`{calling_interface:?}`). It should makes sens only on the `{available_interface}` interface.",
                 ))
                     .color_range(0,..)
                     .color_range(1, 5..indice_after_command)
                     .color_range(1, indice_before_current_interface..indice_after_current_interface)
                     .color_range(1, indice_before_available_interfaces..indice_after_available_interfaces)
-                    ;
-                serialize_text(&text)
+                );
+
+                if let Interface::Pipe = calling_interface {
+                    texts.push(Text::new("Hint: You can force execution of the command by adding the argument `--args=force_available`.\r\n\tWARNING: This may execute the command more than once if you have multiple users connected to this session.")
+                    .color_range(2, ..4)
+                    .color_range(1, 69..91)
+                    .color_range(0, 96..103)
+                )
+                }
+
+                texts.iter().fold(String::new(), |accu, item| {
+                    accu + "\n" + &serialize_text(item)
+                })
             }
             Self::HelpAll { selection }
             | Self::HelpPane { selection }
@@ -180,16 +192,15 @@ impl Display for ActionList {
 impl Display for State {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         // Use the user’s theme
-        let theme = self.mode_info.style.colors;
-        write!(f, "{}", self.render_action_line(theme))?;
+        write!(f, "{}", self.render_action_line())?;
         // TODO: Only print the control line when its options are usefull… or remove it entirely to integrate the options in the command actions
-        write!(f, "{}", self.render_controls_line(theme))?;
+        write!(f, "{}", self.render_controls_line())?;
         Ok(())
     }
 }
 
 impl State {
-    pub fn render_action_line(&self, _theme: Palette) -> String {
+    pub fn render_action_line(&self) -> String {
         // TODO: I don’t think this is a good setup: the 2 methods do not coexist yet, so… I only keep it for reference while waiting for the new theme spec
         // let c = match theme.cyan {
         //     zellij_tile::prelude::PaletteColor::Rgb(_) => 1,
@@ -207,7 +218,7 @@ impl State {
         )
     }
 
-    pub fn render_controls_line(&self, _theme: Palette) -> String {
+    pub fn render_controls_line(&self) -> String {
         // let has_results = true; // !self.displayed_search_results.1.is_empty();
         let tiled_floating_control =
             self.new_floating_control("Ctrl + f", self.should_open_floating);

@@ -3,7 +3,6 @@ mod ui;
 
 use action::{Action, ActionList, Interface};
 
-use plugin_api::generated_api::api::pipe_message;
 use strum::EnumMessage;
 use zellij_tile::prelude::*;
 
@@ -17,14 +16,20 @@ struct DisplaySize {
 }
 
 #[derive(Default)]
+struct ZellijState {
+    // current_session: SessionInfo,
+    // mode_info: ModeInfo,
+    // current_tab: TabInfo,
+    // last_pane: PaneManifest,
+}
+
+#[derive(Default)]
 struct State {
     action: Action,
     should_open_floating: bool,
     search_filter: EnvironmentFrom,
     display: DisplaySize,
-    mode_info: ModeInfo,
-    // last_pane: PaneManifest,
-    // last_tab: TabInfo, // TODO: useless?
+    zellij_state: ZellijState,
 }
 
 register_plugin!(State);
@@ -40,8 +45,11 @@ impl ZellijPlugin for State {
             PermissionType::RunCommands,
         ]);
         subscribe(&[
-            /*EventType::PaneUpdate, EventType::TabUpdate,*/ EventType::Key,
-            EventType::ModeUpdate,
+            EventType::Key,
+            // EventType::ModeUpdate,
+            // EventType::PaneUpdate,
+            EventType::SessionUpdate,
+            // EventType::TabUpdate,
         ]);
 
         // TODO: This may change as I’m not convinced the `configuration`’s API is good for this
@@ -53,25 +61,40 @@ impl ZellijPlugin for State {
         let mut should_render = false;
 
         match event {
-            Event::ModeUpdate(mode_info) => {
-                self.mode_info = mode_info;
-                should_render = true;
-            }
-            // Event::PaneUpdate(pane_info) => {
-            //     self.last_pane = pane_info;
-            //     // should_render = true;
-            // }
-            // Event::TabUpdate(tab_info) => {
-            //     self.last_tab = tab_info.iter().find(|t| t.active).unwrap().clone();
-            //     // should_render = true;
-            // }
             Event::Key(key) => {
                 self.handle_key(key);
                 should_render = true;
             }
+            // Event::ModeUpdate(mode_info) => {
+            //     self.mode_info = mode_info;
+            //     should_render = true;
+            // }
+            // Event::PaneUpdate(pane_info) => {
+            //     self.last_pane = pane_info;
+            //     // should_render = true;
+            // }
             Event::PermissionRequestResult(_status) => {
                 // should_render = true;
             }
+            // Event::SessionUpdate(sessions_info, _resurrectable_sessions) => {
+            //     sessions_info.iter().for_each(|s| {
+            //         eprintln!(
+            //             "Session infos: name: {}, current: {}, clients: {}",
+            //             s.name, s.is_current_session, s.connected_clients
+            //         )
+            //     });
+            //     self.zellij_state.current_session = sessions_info
+            //         .iter()
+            //         .find(|s| s.is_current_session)
+            //         .unwrap()
+            //         .clone();
+            // }
+            // Event::TabUpdate(tab_info) => {
+            //     self.current_tab = tab_info.iter().find(|t| t.active).unwrap().clone();
+            //     // eprintln!("Event::TabUpdate: {tab_info:#?}\n");
+            //     // eprintln!("Current Tab: {:#?}\n", self.current_tab);
+            //     // should_render = true;
+            // }
             _ => unimplemented!("{:?}", event),
         };
 
@@ -105,16 +128,55 @@ impl ZellijPlugin for State {
             self.action.set(command, &interface)
         };
 
+        let force = pipe_message.args.get("force_available").is_some(); // TODO: just "force"?
         let res = format!("{}", self.action.action());
+        let res = if force {
+            // Cannot merge those 2 if with `&&` because of: eRFC 2497, "if- and while-let-chains, take 2" see tracking issue https://github.com/rust-lang/rust/issues/53667
+            // This is annoying for the elses
+            if let ActionList::Unavailable {
+                action,
+                calling_interface,
+            } = self.action.action()
+            {
+                let res = format!("{}", action);
+                self.start_action(Some((**action).clone()));
+                res
+            } else {
+                self.start_action(None);
+                res
+            }
+        } else {
+            self.start_action(None);
+            res
+        };
+
         match pipe_message.source {
             PipeSource::Cli(pipe_name) => {
                 cli_pipe_output(&pipe_name, &format!("{res}\n"));
+
+                // FIXME: Auto-force on only 1 user connected attempt.
+                //        See: https://github.com/zellij-org/zellij/issues/3580
+                //
+                // if let ActionList::Unavailable {
+                //     action,
+                //     calling_interface,
+                // } = self.action.action()
+                // {
+                //     cli_pipe_output(
+                //         &pipe_name,
+                //         &format!("{}\n", self.zellij_state.current_session.connected_clients),
+                //     );
+                //     // Cannot merge those 2 if with `&&` because of: eRFC 2497, "if- and while-let-chains, take 2" see tracking issue https://github.com/rust-lang/rust/issues/53667
+                //     if self.zellij_state.current_session.connected_clients == 0 {
+                //         // TODO: implement Display for interface?
+                //         cli_pipe_output(&pipe_name, &format!("Note: forcing this command to run because only 1 user is connected, so it should makes sense even if it is technically usually don’t from `{calling_interface:?}` interface \n"));
+                //         self.start_action(Some((**action).clone()));
+                //     }
+                // }
             }
             PipeSource::Plugin(_) => todo!(),
             PipeSource::Keybind => todo!(),
         }
-
-        self.start_action();
 
         close_self();
         should_render
@@ -131,7 +193,7 @@ impl State {
         match key {
             Key::Down => self.action.selection_down(),
             Key::Up => self.action.selection_up(),
-            Key::Char('\n') => self.start_action(),
+            Key::Char('\n') => self.start_action(None),
             // Key::BackTab => self.open_search_result_in_terminal(),
             Key::Ctrl('f') => {
                 self.should_open_floating = !self.should_open_floating;
@@ -170,9 +232,9 @@ impl State {
         }
     }
 
-    fn start_action(&mut self) {
+    fn start_action(&mut self, override_action: Option<ActionList>) {
         let interface = Interface::Pane; // TODO: receive from parameter?
-        let action = self.action.action().clone();
+        let action = override_action.unwrap_or_else(|| self.action.action().clone());
         let mut done = true;
         match action {
             // ActionList::ClearScreen => {
