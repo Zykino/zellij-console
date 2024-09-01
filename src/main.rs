@@ -48,7 +48,7 @@ impl ZellijPlugin for State {
             EventType::Key,
             // EventType::ModeUpdate,
             // EventType::PaneUpdate,
-            EventType::SessionUpdate,
+            // EventType::SessionUpdate,
             // EventType::TabUpdate,
         ]);
 
@@ -321,14 +321,19 @@ impl State {
                     _ => panic!("Should be one of the help modes"),
                 };
 
-                let variant = docs
-                    .nth(selection.row)
-                    .expect("Selection {selection:?} is bounded to the iter size");
-                let s = variant.get_serializations().first().unwrap_or_else(|| {
-                    panic!("{variant:?} is garanteed to have a serialization string")
-                });
+                match selection {
+                    action::Selection::One { row, max: _ } => {
+                        let variant = docs
+                            .nth(row)
+                            .expect("Selection {selection:?} is bounded to the iter size");
+                        let s = variant.get_serializations().first().unwrap_or_else(|| {
+                            panic!("{variant:?} is garanteed to have a serialization string")
+                        });
 
-                self.action.set(s, &interface);
+                        self.action.set(s, &interface);
+                    }
+                    action::Selection::Expand => {}
+                }
             }
             ActionList::Unknown => {}
             ActionList::Unavailable { .. } => {

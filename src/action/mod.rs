@@ -4,9 +4,13 @@ use strum_macros::{EnumIter, EnumMessage, EnumProperty};
 use zellij_tile::prelude::{CommandToRun, FileToOpen};
 
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
-pub(crate) struct Selection {
-    pub(crate) row: usize,
-    max: usize,
+pub(crate) enum Selection {
+    One {
+        row: usize,
+        max: usize,
+    },
+    #[default]
+    Expand,
 }
 
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
@@ -293,12 +297,12 @@ impl ActionList {
             ) =>
             {
                 let max = ActionList::filter_any().count();
-                ActionList::HelpAll {
-                    selection: Selection {
-                        max,
-                        ..Default::default()
-                    },
-                }
+                let selection = match interface {
+                    Interface::All | Interface::Pane => Selection::One { max, row: 0 },
+                    Interface::Pipe => Default::default(),
+                };
+
+                ActionList::HelpAll { selection }
             }
             _ if deserialize_action(
                 &action,
@@ -308,12 +312,12 @@ impl ActionList {
             ) =>
             {
                 let max = ActionList::filter_pane().count();
-                ActionList::HelpPane {
-                    selection: Selection {
-                        max,
-                        ..Default::default()
-                    },
-                }
+                let selection = match interface {
+                    Interface::All | Interface::Pane => Selection::One { max, row: 0 },
+                    Interface::Pipe => Default::default(),
+                };
+
+                ActionList::HelpPane { selection }
             }
             _ if deserialize_action(
                 &action,
@@ -323,12 +327,12 @@ impl ActionList {
             ) =>
             {
                 let max = ActionList::filter_pipe().count();
-                ActionList::HelpPipe {
-                    selection: Selection {
-                        max,
-                        ..Default::default()
-                    },
-                }
+                let selection = match interface {
+                    Interface::All | Interface::Pane => Selection::One { max, row: 0 },
+                    Interface::Pipe => Default::default(),
+                };
+
+                ActionList::HelpPipe { selection }
             }
 
             _ => ActionList::Unknown,
@@ -455,13 +459,16 @@ impl Action {
         match &mut self.action {
             ActionList::HelpAll { selection }
             | ActionList::HelpPane { selection }
-            | ActionList::HelpPipe { selection } => {
-                if selection.row != 0 {
-                    selection.row -= 1;
-                } else {
-                    selection.row = selection.max - 1
+            | ActionList::HelpPipe { selection } => match selection {
+                Selection::One { row, max } => {
+                    if *row != 0 {
+                        *row -= 1;
+                    } else {
+                        *row = *max - 1
+                    }
                 }
-            }
+                Selection::Expand => {}
+            },
             _ => {}
         }
     }
@@ -470,9 +477,10 @@ impl Action {
         match &mut self.action {
             ActionList::HelpAll { selection }
             | ActionList::HelpPane { selection }
-            | ActionList::HelpPipe { selection } => {
-                selection.row = (selection.row + 1) % selection.max;
-            }
+            | ActionList::HelpPipe { selection } => match selection {
+                Selection::One { row, max } => *row = (*row + 1) % *max,
+                Selection::Expand => {}
+            },
             _ => {}
         }
     }

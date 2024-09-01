@@ -3,7 +3,7 @@ use strum::{EnumMessage, EnumProperty};
 
 use zellij_tile::prelude::{ui_components::*, CommandToRun, FileToOpen, Palette};
 
-use crate::action::{ActionList, Interface};
+use crate::action::{ActionList, Interface, Selection};
 use crate::{EnvironmentFrom, State};
 
 const WHITE: u8 = 15;
@@ -92,19 +92,12 @@ impl Display for ActionList {
                         );
 
                         // TODO: || Interface::Pipe { // --> Expand all when asking for Help from the CLI.
-                        if i == selection.row {
-                            if !variant.usable_in_all() {
-                                result.push(
-                                    NestedListItem::new(format!(
-                                        "{}:\t{}",
-                                        interface_msg,
-                                        variant.get_usable_interface().expect("Interface restriction should be set for command we show help on")
-                                    ))
-                                        .indent(1)
-                                        .color_range(2, 0..interface_msg.len()),
-                                );
-                            }
+                        let (show, select) = match selection {
+                            Selection::One { row, max: _ } => (&i == row, &i == row ),
+                            Selection::Expand => (true, false),
+                        };
 
+                        if show {
                             result.push(
                                 NestedListItem::new(format!(
                                     "{}:\t{}",
@@ -114,7 +107,21 @@ impl Display for ActionList {
                                     .indent(1)
                                     .color_range(2, 0..shortcut_msg.len()),
                             );
+                            
+                            if !variant.usable_in_all() {
+                                result.push(
+                                    NestedListItem::new(format!(
+                                        "{}:\t{}",
+                                        interface_msg,
+                                        variant.get_usable_interface().expect("Interface restriction should be set for command we show help on")
+                                    ))
+                                        .indent(1)
+                                        .color_range(0, 0..interface_msg.len()),
+                                );
+                            }
+                        }
 
+                        if select {
                             result.iter().map(|item| item.clone().selected()).collect()
                         } else {
                             result.iter().map(|item| item.to_owned()).collect()
