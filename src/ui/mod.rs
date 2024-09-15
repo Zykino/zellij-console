@@ -147,6 +147,7 @@ impl Display for ActionList {
             // ),
             Self::DetachEveryone => String::from("DetachEveryone"),
             Self::DetachMe => String::from("DetachMe"),
+            Self::DetachOthers => String::from("DetachOthers"),
             // Self::EditScrollback => String::from("EditScrollback"),
             Self::Edit(FileToOpen {
                 path,

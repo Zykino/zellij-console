@@ -38,6 +38,7 @@ impl ZellijPlugin for State {
     fn load(&mut self, _configuration: BTreeMap<String, String>) {
         request_permission(&[
             PermissionType::ChangeApplicationState,
+            PermissionType::MessageAndLaunchOtherPlugins,
             PermissionType::OpenFiles,
             PermissionType::OpenTerminalsOrPlugins,
             PermissionType::ReadApplicationState,
@@ -103,6 +104,9 @@ impl ZellijPlugin for State {
 
     fn pipe(&mut self, pipe_message: PipeMessage) -> bool {
         let mut should_render = false; // TODO: needed sometimes? apparently not since changing the action already update the interface… but check it… (if needed add when `set`ting the action?)
+        let interface = Interface::Pipe;
+
+        eprintln!("received message from pipe {:#?}", pipe_message);
 
         // TODO: accept/refuse depending on source and current status (already a command being written, …)
 
@@ -121,7 +125,6 @@ impl ZellijPlugin for State {
         //     * Not sure if the commands run or wait in those scenarios.
         //     * The `-c, --plugin-configuration <PLUGIN_CONFIGURATION>` can be used (currently with any config, since it is not used) to always create a new plugin and found yourself in the first scenario.
 
-        let interface = Interface::Pipe;
         if let Some(command) = &pipe_message.payload {
             self.action.set(command, &interface)
         } else if let Some(command) = pipe_message.args.get("command") {
@@ -156,6 +159,7 @@ impl ZellijPlugin for State {
 
                 // FIXME: Auto-force on only 1 user connected attempt.
                 //        See: https://github.com/zellij-org/zellij/issues/3580
+                // TODO: This could also be done for Keybind? but not the text writting
                 //
                 // if let ActionList::Unavailable {
                 //     action,
@@ -174,8 +178,9 @@ impl ZellijPlugin for State {
                 //     }
                 // }
             }
-            PipeSource::Plugin(_) => todo!(),
-            PipeSource::Keybind => todo!(),
+            PipeSource::Plugin(_) | PipeSource::Keybind => {
+                eprintln!("Received message {:#?}", pipe_message)
+            }
         }
 
         close_self();
@@ -253,11 +258,30 @@ impl State {
             //     None => done = false,
             // },
             ActionList::DetachEveryone => {
-                todo!("Broadcast to other instance of this plugin in the case of comming from the pane interface (from the CLI, every user’s plugin should already be receiving the command)");
+                eprintln!("send message to pipe? DE");
+                if let Interface::Pane = interface {
+                    eprintln!("send message to pipe DE");
+                    pipe_message_to_plugin(
+                        MessageToPlugin::new("message_name")
+                            .with_plugin_url("zellij::OWN_URL")
+                            .with_payload(self.action.command()),
+                    );
+                }
                 detach();
             }
             ActionList::DetachMe => {
                 detach();
+            }
+            ActionList::DetachOthers => {
+                eprintln!("send message to pipe? DO");
+                if let Interface::Pane = interface {
+                    eprintln!("send message to pipe DO");
+                    pipe_message_to_plugin(
+                        MessageToPlugin::new("message_name")
+                            .with_plugin_url("zellij::OWN_URL")
+                            .with_payload(self.action.command()),
+                    );
+                }
             }
             // ActionList::EditScrollback => {
             //     // TODO: Edit scrollback applies on the focused pane, focus to the previous one before clearing the screen/scrollback

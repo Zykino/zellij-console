@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use strum::{EnumMessage, EnumProperty, IntoEnumIterator};
 use strum_macros::{EnumIter, EnumMessage, EnumProperty};
 
@@ -154,6 +156,14 @@ pub(crate) enum ActionList {
         serialize = "Detach_Me"
     )]
     DetachMe,
+    /// Detach other clients from the current session
+    #[strum(
+        props(Interface = "Pane"), // The cli does not know who wrote the command or who pressed `Enter`
+        serialize = "DetachOthers",
+        serialize = "Detach-Others",
+        serialize = "Detach_Others"
+    )]
+    DetachOthers,
     // /// Edit a pane scrollback
     // EditScrollback,
     /// Edit a file in a new edit pane
@@ -227,6 +237,7 @@ impl ActionList {
                 ActionList::DetachEveryone
             }
             _ if deserialize_action(&action, ActionList::DetachMe) => ActionList::DetachMe,
+            _ if deserialize_action(&action, ActionList::DetachOthers) => ActionList::DetachOthers,
             // _ if deserialize_action(&action, ActionList::EditScrollback) => {
             //     ActionList::EditScrollback
             // }
@@ -389,6 +400,10 @@ pub(crate) struct Action {
 impl Action {
     pub(crate) fn action(&self) -> &ActionList {
         &self.action
+    }
+
+    pub(crate) fn command(&self) -> String {
+        self.command.clone()
     }
 }
 
