@@ -162,20 +162,20 @@ impl Display for ActionList {
                 serialize_text(&Text::new("DIRECTORY:").color_range(UNSETTABLE_COLOR, 0..4)),
                 cwd.clone().unwrap_or_default(),
             ),
-            // Self::NewPane { path } => format!(
-            //     "New pane\n{} {}",
-            //     serialize_text(&Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
-            //     path
-            // ),
-            // Self::Run(CommandToRun { path, args, cwd }) => format!(
-            //     "Run\n{} {:?}\n{} {:?}\n{} {:?}",
-            //     serialize_text(&Text::new("COMMAND:").color_range(REQUIRED_COLOR, 0..7)),
-            //     path,
-            //     serialize_text(&Text::new("ARGUMENTS:").color_range(OPTIONAL_COLOR, 0..9)),
-            //     args,
-            //     serialize_text(&Text::new("DIRECTORY:").color_range(OPTIONAL_COLOR, 0..9)),
-            //     cwd.clone().unwrap_or_default(),
-            // ),
+            Self::NewPane { path } => format!(
+                "New pane\n{} {}",
+                serialize_text(&Text::new("PATH:").color_range(REQUIRED_COLOR, 0..4)),
+                path
+            ),
+            Self::Run(CommandToRun { path, args, cwd }) => format!(
+                "Run\n{} {:?}\n{} {:?}\n{} {:?}",
+                serialize_text(&Text::new("COMMAND:").color_range(REQUIRED_COLOR, 0..7)),
+                path,
+                serialize_text(&Text::new("ARGUMENTS:").color_range(OPTIONAL_COLOR, 0..9)),
+                args,
+                serialize_text(&Text::new("DIRECTORY:").color_range(OPTIONAL_COLOR, 0..9)),
+                cwd.clone().unwrap_or_default(),
+            ),
         };
 
         let text = match self {

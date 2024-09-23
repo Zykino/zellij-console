@@ -171,16 +171,20 @@ pub(crate) enum ActionList {
         props(Interface = "Pane"), // The cli does not know who wrote the command or who pressed `Enter` --> The edit will be done by every users
     )]
     Edit(FileToOpen),
-    // /// Open a new pane in the current tab
-    // #[strum(
-    //     serialize = "NewPane",
-    //     serialize = "New-Pane",
-    //     serialize = "New_Pane",
-    //     serialize = "np"
-    // )]
-    // NewPane { path: String },
-    // /// Run a command in a new edit pane
-    // Run(CommandToRun),
+    /// Open a new pane in the current tab
+    #[strum(
+        props(Interface = "Pane"), // The cli does not know who wrote the command or who pressed `Enter` --> The edit will be done by every users
+        serialize = "NewPane",
+        serialize = "New-Pane",
+        serialize = "New_Pane",
+        serialize = "np"
+    )]
+    NewPane { path: String },
+    #[strum(
+        props(Interface = "Pane"), // The cli does not know who wrote the command or who pressed `Enter` --> The edit will be done by every users
+    )]
+    /// Run a command in a new edit pane
+    Run(CommandToRun),
 }
 
 fn deserialize_action(action: &String, variant: impl EnumMessage) -> bool {
@@ -258,46 +262,46 @@ impl ActionList {
                     cwd: None, // TODO: get the cwd
                 })
             }
-            // _ if deserialize_action(
-            //     &action,
-            //     ActionList::NewPane {
-            //         path: Default::default(),
-            //     },
-            // ) =>
-            // {
-            //     ActionList::NewPane {
-            //         path: action_arguments.collect::<Vec<String>>().join(" "),
-            //     }
-            // }
-            // _ if deserialize_action(&action, ActionList::Run(Default::default())) => {
-            //     let mut cmd = String::new();
-            //     let mut args: Vec<String> = Default::default();
-            //     let mut cwd = Default::default();
+            _ if deserialize_action(
+                &action,
+                ActionList::NewPane {
+                    path: Default::default(),
+                },
+            ) =>
+            {
+                ActionList::NewPane {
+                    path: action_arguments.collect::<Vec<String>>().join(" "),
+                }
+            }
+            _ if deserialize_action(&action, ActionList::Run(Default::default())) => {
+                let mut cmd = String::new();
+                let mut args: Vec<String> = Default::default();
+                let mut cwd = Default::default();
 
-            //     let mut val = action_arguments.next();
-            //     while val.is_some() {
-            //         // Safety: checked in the while loop
-            //         let v = unsafe { val.unwrap_unchecked() };
+                let mut val = action_arguments.next();
+                while val.is_some() {
+                    // Safety: checked in the while loop
+                    let v = unsafe { val.unwrap_unchecked() };
 
-            //         match v.as_str() {
-            //             "---cwd" => cwd = action_arguments.next().map(PathBuf::from),
-            //             _ => {
-            //                 if cmd.is_empty() {
-            //                     cmd = v;
-            //                 } else {
-            //                     args.push(v);
-            //                 }
-            //             }
-            //         };
-            //         val = action_arguments.next();
-            //     }
+                    match v.as_str() {
+                        "---cwd" => cwd = action_arguments.next().map(PathBuf::from),
+                        _ => {
+                            if cmd.is_empty() {
+                                cmd = v;
+                            } else {
+                                args.push(v);
+                            }
+                        }
+                    };
+                    val = action_arguments.next();
+                }
 
-            //     ActionList::Run(CommandToRun {
-            //         path: cmd.into(),
-            //         args,
-            //         cwd,
-            //     })
-            // }
+                ActionList::Run(CommandToRun {
+                    path: cmd.into(),
+                    args,
+                    cwd,
+                })
+            }
 
             // Technicals
             _ if deserialize_action(

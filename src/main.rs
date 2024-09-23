@@ -305,34 +305,35 @@ impl State {
                     open_file(file);
                 }
             }
-            // ActionList::NewPane { path } => {
-            //     if self.should_open_floating {
-            //         open_terminal_floating(path, None); // TODO: Make it possible to provide the coordinates
-            //     } else {
-            //         open_terminal(path);
-            //     }
-            // }
-            // ActionList::Run(CommandToRun { path, args, cwd }) => {
-            //     let (path, args) = match self.search_filter {
-            //         EnvironmentFrom::ZellijSession => (path, args),
-            //         EnvironmentFrom::DefaultShell => {
-            //             let mut a = vec![
-            //                 "-c".to_string(),
-            //                 path.to_str().unwrap_or_default().to_string(),
-            //             ];
-            //             a.append(&mut args.clone());
+            ActionList::NewPane { path } => {
+                if self.should_open_floating {
+                    open_terminal_floating(path, None); // TODO: Make it possible to provide the coordinates
+                } else {
+                    open_terminal(path);
+                }
+            }
+            ActionList::Run(CommandToRun { path, args, cwd }) => {
+                let (path, args) = match self.search_filter {
+                    EnvironmentFrom::ZellijSession => (path, args),
+                    EnvironmentFrom::DefaultShell => {
+                        let mut a = vec![
+                            "-c".to_string(),
+                            path.to_str().unwrap_or_default().to_string(),
+                        ];
+                        a.append(&mut args.clone());
 
-            //             ("fish".into(), a) // TODO: get user’s shell
-            //         }
-            //     };
-            //     let cmd = CommandToRun { path, args, cwd };
+                        ("fish".into(), a) // TODO: get user’s shell
+                    }
+                };
+                let cmd = CommandToRun { path, args, cwd };
 
-            //     if self.should_open_floating {
-            //         open_command_pane_floating(cmd, None); // TODO: Make it possible to provide the coordinates
-            //     } else {
-            //         open_command_pane(cmd);
-            //     }
-            // }
+                if self.should_open_floating {
+                    open_command_pane_floating(cmd, None); // TODO: Make it possible to provide the coordinates
+                } else {
+                    open_command_pane(cmd);
+                }
+            }
+
             ActionList::HelpAll { selection }
             | ActionList::HelpPane { selection }
             | ActionList::HelpPipe { selection } => {
