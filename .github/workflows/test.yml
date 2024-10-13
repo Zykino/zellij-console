@@ -32,6 +32,7 @@ jobs:
       - name: Install ${{ matrix.toolchain }}
         uses: dtolnay/rust-toolchain@master
         with:
+          target: wasm32-wasip1
           toolchain: ${{ matrix.toolchain }}
       - name: cargo generate-lockfile
         # enable this ci template to run regardless of whether the lockfile is checked in or not
@@ -74,8 +75,12 @@ jobs:
           submodules: true
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
+        with:
+          target: wasm32-wasip1
       - name: Install nightly for -Zminimal-versions
         uses: dtolnay/rust-toolchain@nightly
+        with:
+          target: wasm32-wasip1
       - name: rustup default stable
         run: rustup default stable
       - name: cargo update -Zminimal-versions
@@ -102,6 +107,8 @@ jobs:
           submodules: true
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
+        with:
+          target: wasm32-wasip1
       - name: cargo generate-lockfile
         if: hashFiles('Cargo.lock') == ''
         run: cargo generate-lockfile
@@ -138,6 +145,7 @@ jobs:
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
         with:
+          target: wasm32-wasip1
           components: llvm-tools-preview
       - name: cargo install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov

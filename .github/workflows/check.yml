@@ -31,6 +31,7 @@ jobs:
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
         with:
+          target: wasm32-wasip1
           components: rustfmt
       - name: cargo fmt --check
         run: cargo fmt --check
@@ -52,6 +53,7 @@ jobs:
       - name: Install ${{ matrix.toolchain }}
         uses: dtolnay/rust-toolchain@master
         with:
+          target: wasm32-wasip1
           toolchain: ${{ matrix.toolchain }}
           components: clippy
       - name: cargo clippy
@@ -69,6 +71,7 @@ jobs:
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
         with:
+          target: wasm32-wasip1
           components: rustfmt
       - name: cargo-semver-checks
         uses: obi1kenobi/cargo-semver-checks-action@v2
@@ -84,6 +87,8 @@ jobs:
           submodules: true
       - name: Install nightly
         uses: dtolnay/rust-toolchain@nightly
+        with:
+          target: wasm32-wasip1
       - name: Install cargo-docs-rs
         uses: dtolnay/install@cargo-docs-rs
       - name: cargo docs-rs
@@ -99,6 +104,8 @@ jobs:
           submodules: true
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
+        with:
+          target: wasm32-wasip1
       - name: cargo install cargo-hack
         uses: taiki-e/install-action@cargo-hack
       # intentionally no target specifier; see https://github.com/jonhoo/rust-ci-conf/pull/4
@@ -121,6 +128,7 @@ jobs:
       - name: Install ${{ matrix.msrv }}
         uses: dtolnay/rust-toolchain@master
         with:
+          target: wasm32-wasip1
           toolchain: ${{ matrix.msrv }}
       - name: cargo +${{ matrix.msrv }} check
         run: cargo check

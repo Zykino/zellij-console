@@ -24,6 +24,8 @@ jobs:
           submodules: true
       - name: Install nightly
         uses: dtolnay/rust-toolchain@nightly
+        with:
+          target: wasm32-wasip1
       - run: |
             # to get the symbolizer for debug symbol resolution
             sudo apt install llvm
@@ -63,6 +65,7 @@ jobs:
       - name: Install ${{ env.NIGHTLY }}
         uses: dtolnay/rust-toolchain@master
         with:
+          target: wasm32-wasip1
           toolchain: ${{ env.NIGHTLY }}
           components: miri
       - name: cargo miri test
@@ -77,6 +80,8 @@ jobs:
           submodules: true
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
+        with:
+          target: wasm32-wasip1
       - name: cargo test --test loom
         run: cargo test --release --test loom
         env:

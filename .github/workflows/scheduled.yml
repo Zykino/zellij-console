@@ -24,6 +24,8 @@ jobs:
           submodules: true
       - name: Install nightly
         uses: dtolnay/rust-toolchain@nightly
+        with:
+          target: wasm32-wasip1
       - name: cargo generate-lockfile
         if: hashFiles('Cargo.lock') == ''
         run: cargo generate-lockfile
@@ -48,6 +50,8 @@ jobs:
       - name: Install beta
         if: hashFiles('Cargo.lock') != ''
         uses: dtolnay/rust-toolchain@beta
+        with:
+          target: wasm32-wasip1
       - name: cargo update
         if: hashFiles('Cargo.lock') != ''
         run: cargo update
