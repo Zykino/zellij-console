@@ -381,6 +381,7 @@ impl ActionList {
         ActionList::iter().filter(Self::usable_in_any)
     }
 
+    #[allow(dead_code)]
     pub(crate) fn filter_all() -> impl Iterator<Item = ActionList> {
         ActionList::iter().filter(Self::usable_in_all)
     }
