@@ -1,13 +1,13 @@
-use std::fmt::{Debug, Display, Formatter};
-use strum::{EnumMessage, EnumProperty};
+use std::fmt::{Display, Formatter};
+use strum::EnumMessage;
 
-use zellij_tile::prelude::{ui_components::*, CommandToRun, FileToOpen, Palette};
+use zellij_tile::prelude::{ui_components::*, CommandToRun, FileToOpen};
 
 use crate::action::{ActionList, Interface, Selection};
 use crate::{EnvironmentFrom, State};
 
 const WHITE: u8 = 15;
-const BLACK: u8 = 16;
+// const BLACK: u8 = 16;
 
 const REQUIRED_COLOR: usize = 2;
 const OPTIONAL_COLOR: usize = 3;
@@ -107,7 +107,7 @@ impl Display for ActionList {
                                     .indent(1)
                                     .color_range(2, 0..shortcut_msg.len()),
                             );
-                            
+
                             if !variant.usable_in_all() {
                                 result.push(
                                     NestedListItem::new(format!(
@@ -221,7 +221,7 @@ impl State {
             "{} {}{}\n{}\n",
             serialize_text(&Text::new("PROMPT:").color_range(1, 0..6)),
             self.action.as_str(),
-            styled_text_background(WHITE, " "), // "Cursor" representation
+            cursor(WHITE, " "),
             self.action.action(),
         )
     }
@@ -261,21 +261,7 @@ impl State {
     }
 }
 
-pub fn bold(text: &str) -> String {
-    format!("\u{1b}[1m{}\u{1b}[m", text)
-}
-
-pub fn styled_text(foreground_color: u8, background_color: u8, text: &str) -> String {
-    format!(
-        "\u{1b}[38;5;{};48;5;{}m{}\u{1b}[m",
-        foreground_color, background_color, text
-    )
-}
-
-pub fn styled_text_foreground(foreground_color: u8, text: &str) -> String {
-    format!("\u{1b}[38;5;{}m{}\u{1b}[m", foreground_color, text)
-}
-
-pub fn styled_text_background(background_color: u8, text: &str) -> String {
+pub fn cursor(background_color: u8, text: &str) -> String {
+    // format!("\\033[?25h") // Cursor, see https://poor.dev/blog/terminal-anatomy/
     format!("\u{1b}[48;5;{}m{}\u{1b}[m", background_color, text)
 }

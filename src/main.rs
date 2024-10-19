@@ -29,7 +29,7 @@ struct State {
     should_open_floating: bool,
     search_filter: EnvironmentFrom,
     display: DisplaySize,
-    zellij_state: ZellijState,
+    // zellij_state: ZellijState,
 }
 
 register_plugin!(State);
@@ -103,7 +103,7 @@ impl ZellijPlugin for State {
     }
 
     fn pipe(&mut self, pipe_message: PipeMessage) -> bool {
-        let mut should_render = false; // TODO: needed sometimes? apparently not since changing the action already update the interface… but check it… (if needed add when `set`ting the action?)
+        let should_render = false; // TODO: needed sometimes? apparently not since changing the action already update the interface… but check it… (if needed add when `set`ting the action?)
         let interface = Interface::Pipe;
 
         eprintln!("received message from pipe {:#?}", pipe_message);
@@ -138,7 +138,7 @@ impl ZellijPlugin for State {
             // This is annoying for the elses
             if let ActionList::Unavailable {
                 action,
-                calling_interface,
+                calling_interface: _,
             } = self.action.action()
             {
                 let res = format!("{}", action);

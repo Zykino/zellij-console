@@ -9,7 +9,7 @@ layout {
                 pane command="dash" name="Compile and reload plugin" {
                     // args "-c" "cargo build && zellij action start-or-reload-plugin file:/mnt/Data/Code/Target/Cargo/wasm32-wasi/debug/zellij-console.wasm"
                     // if you have "watchexec" installed, you can comment the above line and uncomment the below one to build + reload the plugin on fs changes
-                    args "-c" "watchexec --quiet --clear --watch src -- 'cargo build --quiet && zellij action start-or-reload-plugin file:/mnt/Data/Code/Target/Cargo/wasm32-wasi/debug/zellij-console.wasm'"
+                    args "-c" "watchexec --quiet --clear --watch src -- 'cargo build --quiet && zellij action start-or-reload-plugin file:/mnt/Data/Code/Target/Cargo/wasm32-wasip1/debug/zellij-console.wasm'"
                     size "25%"
                 }
             }
